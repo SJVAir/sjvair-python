@@ -11,10 +11,10 @@ import urllib.request
 from queue import Queue
 from random import random
 
-MONITOR_CSV = './sjvair-monitor-list.csv'
-RESULTS_CSV = './rootaccess_2020-2024.csv'
+MONITOR_CSV = 'sjvair-monitor-list.csv'
+RESULTS_CSV = 'data-export.csv'
 
-START_DATE = datetime.date(2020, 1, 1)
+START_DATE = datetime.date(2024, 1, 1)
 END_DATE = datetime.date(2024, 12, 31)
 
 SENSORS = ['a', 'b'] # Comment out to fetch default sensors
