@@ -1,2 +1,2 @@
-# sjvair-python
-SJVAir tools in Python
+# sjvair-tools
+A collection of tools for interacting with data from SJVAir.
