@@ -132,7 +132,7 @@ def work_task(work_queue, write_queue):
 
 def write_task(write_queue):
     print('Writer started!')
-    with open(RESULTS_CSV, 'w') as f:
+    with open(RESULTS_CSV, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=HEADERS)
         writer.writeheader()
         while True:
