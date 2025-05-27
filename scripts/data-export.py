@@ -2,8 +2,10 @@ import calendar
 import concurrent.futures
 import csv
 import datetime
+import functools
 import json
 import time
+import traceback
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -22,15 +24,27 @@ SENSORS = ['a', 'b'] # Comment out to fetch default sensors
 API_URL = 'https://www.sjvair.com/api/1.0/'
 
 HEADERS = (
-  'timestamp', 'sensor', 'celsius', 'fahrenheit', 'humidity', 'pressure', 
-  'pm10', 'pm25', 'pm100', 'pm25_reported', 'pm25_avg_15', 'pm25_avg_60', 
-  'particles_03um', 'particles_05um', 'particles_100um', 
+  'timestamp', 'sensor', 'celsius', 'fahrenheit', 'humidity', 'pressure',
+  'pm10', 'pm25', 'pm100', 'pm25_reported', 'pm25_avg_15', 'pm25_avg_60',
+  'particles_03um', 'particles_05um', 'particles_100um',
   'particles_10um', 'particles_25um', 'particles_50um',
-  'monitor_id', 'position', 'is_sjvair', 'name', 'default_sensor'
+  'monitor_id', 'position', 'is_sjvair', 'name', 'default_sensor',
+  'pm25_calibration_formula'
 )
 
 
 # --------------------------------------------------------------------------- #
+
+
+def print_traceback(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception:
+            traceback.print_exc()
+            raise
+    return wrapper
 
 
 def chunk_date_range(start_date, end_date):
@@ -46,7 +60,7 @@ def chunk_date_range(start_date, end_date):
         chunk_end_date = min(month_end_date, end_date)
         chunks.append((current_date, chunk_end_date))
         current_date = chunk_end_date + datetime.timedelta(days=1)
-    
+
     chunks = [(
         datetime.datetime.combine(start_date, datetime.time.min),
         datetime.datetime.combine(end_date, datetime.time.max),
@@ -55,12 +69,13 @@ def chunk_date_range(start_date, end_date):
     return chunks
 
 
-def fetch_entries(queue, monitor, start_time, end_time, sensor=None, page=1, retry=5):
-    print(f'fetch_entries({monitor["id"]}, {start_time.date()}, {end_time.date()}, {sensor}, {page}, {retry})')
+def fetch_entries(queue, idx, monitor, start_time, end_time, sensor=None, page=1, retry=5):
+    print(f'fetch_entries({idx}: {monitor["id"]}, {start_time.date()}, {end_time.date()}, {sensor}, {page}, {retry})')
     params = {
         'timestamp__gte': start_time,
         'timestamp__lte': end_time,
-        'page': page
+        'page': page,
+        'fields': ','.join(HEADERS),
     }
     if sensor is not None:
         # If the sensor is None, it will default to the default sensor.
@@ -70,17 +85,18 @@ def fetch_entries(queue, monitor, start_time, end_time, sensor=None, page=1, ret
 
     try:
         response = urllib.request.urlopen(url)
-    except urllib.error.HTTPError as err:
+    except urllib.error.URLError as err:
         # Retry logic for failed requests
         if retry > 0:
             backoff = (6 - retry) ** 3
             print('\n'.join([
-                f'... fetch_entries({monitor["id"]}, {start_time.date()}, {end_time.date()}, {sensor}, {page}, {retry})',
-                f'... > {err.code}: {err.reason}, retrying in {backoff} seconds...',
+                f'... fetch_entries({idx}: {monitor["id"]}, {start_time.date()}, {end_time.date()}, {sensor}, {page}, {retry})',
+                f'... > {getattr(err, "code", "Error")}: {err.reason}, retrying in {backoff} seconds...',
             ]))
             time.sleep(backoff)
             return fetch_entries(
                 queue=queue,
+                idx=idx,
                 monitor=monitor,
                 start_time=start_time,
                 end_time=end_time,
@@ -96,13 +112,14 @@ def fetch_entries(queue, monitor, start_time, end_time, sensor=None, page=1, ret
     # If there are more pages, add the next page to the queue
     if data['has_next_page']:
         queue.put(dict(
+            idx=idx,
             monitor=monitor,
             start_time=start_time,
             end_time=end_time,
             sensor=sensor,
             page=page + 1 # Next page!
         ))
-    
+
     return [dict({
         'monitor_id': monitor['id'],
         'position': monitor['position'],
@@ -112,6 +129,7 @@ def fetch_entries(queue, monitor, start_time, end_time, sensor=None, page=1, ret
     }, **entry) for entry in data['data']]
 
 
+@print_traceback
 def work_task(work_queue, write_queue):
     print('Worker started!')
     while True:
@@ -130,6 +148,7 @@ def work_task(work_queue, write_queue):
     print('Worker stopped!')
 
 
+@print_traceback
 def write_task(write_queue):
     print('Writer started!')
     with open(RESULTS_CSV, 'w', newline='') as f:
@@ -177,12 +196,14 @@ def main():
     write_queue = Queue() # fetched entries to write
 
     # Open the MONITOR_CSV file and seed the work queue.
-    with open(MONITOR_CSV, 'r') as f:
+    print('Loading the work queue...')
+    with open(MONITOR_CSV, 'r', encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
-        for monitor in reader:
+        for idx, monitor in enumerate(reader):
             for sensor in sensors:
                 for start_date, end_date in date_chunks:
                     work_queue.put({
+                        'idx': idx,
                         'monitor': monitor,
                         'start_time': start_date,
                         'end_time': end_date,
