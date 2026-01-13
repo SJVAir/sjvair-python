@@ -4,36 +4,59 @@ import csv
 import datetime
 import functools
 import json
+import tempfile
 import time
 import traceback
 import urllib.error
 import urllib.parse
 import urllib.request
 
+from pathlib import Path
 from queue import Queue
-from random import random
+from typing import Iterable
 
 MONITOR_CSV = 'sjvair-monitor-list.csv'
 RESULTS_CSV = 'data-export.csv'
 
-START_DATE = datetime.date(2024, 1, 1)
-END_DATE = datetime.date(2024, 12, 31)
+START_DATE = datetime.date(2025, 1, 1)
+END_DATE = datetime.date(2025, 3, 1)
 
-SENSORS = ['a', 'b'] # Comment out to fetch default sensors
+# Default stage and calibration per pollutant
+# SCOPE = 'resolved'
 
-API_URL = 'https://www.sjvair.com/api/1.0/'
+# All stages and calibrations per pollutant
+SCOPE = 'expanded'
 
-HEADERS = (
-  'timestamp', 'sensor', 'celsius', 'fahrenheit', 'humidity', 'pressure',
-  'pm10', 'pm25', 'pm100', 'pm25_reported', 'pm25_avg_15', 'pm25_avg_60',
-  'particles_03um', 'particles_05um', 'particles_100um',
-  'particles_10um', 'particles_25um', 'particles_50um',
-  'monitor_id', 'position', 'is_sjvair', 'name', 'default_sensor',
-  'pm25_calibration_formula'
-)
+API_URL = 'https://www.sjvair.com/api/2.0/'
 
 
 # --------------------------------------------------------------------------- #
+
+STATIC_HEADERS = [
+    'monitor_id',
+    'name',
+    'is_sjvair',
+    'latitude',
+    'longitude',
+    'timestamp_local',
+    'timestamp',
+]
+
+def build_csv_headers(seen_keys: set[str]) -> list[str]:
+    # Keep your known "identity" columns first, then the rest sorted.
+    dynamic = sorted(k for k in seen_keys if k not in STATIC_HEADERS)
+    return [k for k in STATIC_HEADERS if k in seen_keys] + dynamic
+
+
+def parse_ewkt_point(value: str) -> tuple[float, float]:
+    # Expected: SRID=4326;POINT (lon lat)
+    try:
+        _, point = value.split(';', 1)
+        coords = point.strip().lstrip('POINT').strip(' ()')
+        lon_str, lat_str = coords.split()
+        return float(lon_str), float(lat_str)
+    except Exception:
+        return None, None
 
 
 def print_traceback(func):
@@ -61,27 +84,29 @@ def chunk_date_range(start_date, end_date):
         chunks.append((current_date, chunk_end_date))
         current_date = chunk_end_date + datetime.timedelta(days=1)
 
-    chunks = [(
-        datetime.datetime.combine(start_date, datetime.time.min),
-        datetime.datetime.combine(end_date, datetime.time.max),
-    ) for (start_date, end_date) in chunks]
+    chunks = [(start_date, end_date) for (start_date, end_date) in chunks]
 
     return chunks
 
 
-def fetch_entries(queue, idx, monitor, start_time, end_time, sensor=None, page=1, retry=5):
-    print(f'fetch_entries({idx}: {monitor["id"]}, {start_time.date()}, {end_time.date()}, {sensor}, {page}, {retry})')
-    params = {
-        'timestamp__gte': start_time,
-        'timestamp__lte': end_time,
-        'page': page,
-        'fields': ','.join(HEADERS),
-    }
-    if sensor is not None:
-        # If the sensor is None, it will default to the default sensor.
-        params['sensor'] = sensor
+def iter_ndjson(path: Path) -> Iterable[dict]:
+    with path.open('r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            yield json.loads(line)
 
-    url = f'{API_URL}monitors/{monitor["id"]}/entries/?{urllib.parse.urlencode(params)}'
+
+def fetch_entries(queue, idx, monitor, start_date, end_date, retry=5):
+    print(f'fetch_entries({idx}: {monitor["id"]}, {start_date}, {end_date}, {retry})')
+    params = {
+        'start_date': start_date,
+        'end_date': end_date,
+        'scope': 'expanded',
+    }
+
+    url = f'{API_URL}monitors/{monitor["id"]}/entries/export/json/?{urllib.parse.urlencode(params)}'
 
     try:
         response = urllib.request.urlopen(url)
@@ -90,7 +115,7 @@ def fetch_entries(queue, idx, monitor, start_time, end_time, sensor=None, page=1
         if retry > 0:
             backoff = (6 - retry) ** 3
             print('\n'.join([
-                f'... fetch_entries({idx}: {monitor["id"]}, {start_time.date()}, {end_time.date()}, {sensor}, {page}, {retry})',
+                f'... fetch_entries({idx}: {monitor["id"]}, {start_date}, {end_date}, {retry})',
                 f'... > {getattr(err, "code", "Error")}: {err.reason}, retrying in {backoff} seconds...',
             ]))
             time.sleep(backoff)
@@ -98,10 +123,8 @@ def fetch_entries(queue, idx, monitor, start_time, end_time, sensor=None, page=1
                 queue=queue,
                 idx=idx,
                 monitor=monitor,
-                start_time=start_time,
-                end_time=end_time,
-                sensor=sensor,
-                page=page,
+                start_date=start_date,
+                end_date=end_date,
                 retry=retry - 1
             )
         raise err
@@ -109,23 +132,14 @@ def fetch_entries(queue, idx, monitor, start_time, end_time, sensor=None, page=1
     # Read the response and parse the JSON data
     data = json.loads(response.read())
 
-    # If there are more pages, add the next page to the queue
-    if data['has_next_page']:
-        queue.put(dict(
-            idx=idx,
-            monitor=monitor,
-            start_time=start_time,
-            end_time=end_time,
-            sensor=sensor,
-            page=page + 1 # Next page!
-        ))
+    longitude, latitude = parse_ewkt_point(monitor['position'])
 
     return [dict({
         'monitor_id': monitor['id'],
-        'position': monitor['position'],
+        'longitude': longitude,
+        'latitude': latitude,
         'is_sjvair': monitor['is_sjvair'],
         'name': monitor['name'],
-        'default_sensor': monitor['default_sensor'],
     }, **entry) for entry in data['data']]
 
 
@@ -151,9 +165,14 @@ def work_task(work_queue, write_queue):
 @print_traceback
 def write_task(write_queue):
     print('Writer started!')
-    with open(RESULTS_CSV, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=HEADERS)
-        writer.writeheader()
+
+    seen_keys: set[str] = set()
+
+    # Pass 1: write NDJSON to a temp file and collect keys
+    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='-sjvair.ndjson', encoding='utf-8', newline='\n') as tmp:
+        tmp_path = Path(tmp.name)
+        print(f'Writing to tempfile: {tmp_path}')
+
         while True:
             if write_queue.is_shutdown:
                 break
@@ -163,32 +182,51 @@ def write_task(write_queue):
                 continue
 
             entries = write_queue.get()
-            writer.writerows([{k: entry[k] for k in HEADERS} for entry in entries])
+            for entry in entries:
+                seen_keys.update(entry.keys())
+                tmp.write(json.dumps(entry, separators=(',', ':')))
+                tmp.write('\n')
+
             write_queue.task_done()
-    print('Writer stopped!')
+
+    print('Finished writing to tempfile, building CSV.')
+
+    # Pass 2: write final CSV
+    headers = build_csv_headers(seen_keys)
+    with open(RESULTS_CSV, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=headers, extrasaction='ignore')
+        writer.writeheader()
+
+        for entry in iter_ndjson(tmp_path):
+            # DictWriter will write blank for missing keys automatically
+            writer.writerow(entry)
+
+    try:
+        tmp_path.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+    print('Writer finished!')
 
 
 def main():
     '''
         Fetch entries for all monitors in the MONITOR_CSV file between the
-        START_DATE and END_DATE and specified SENSORS, and write the results
-        to the RESULTS_CSV.
+        START_DATE and END_DATE, and write the results to the RESULTS_CSV.
     '''
 
     TIMER_START = time.time()
 
     date_chunks = chunk_date_range(START_DATE, END_DATE)
-    sensors = globals().get('SENSORS', [None])
 
     print()
     print('MONITOR_CSV:', MONITOR_CSV)
     print('RESULTS_CSV:', RESULTS_CSV)
-    print('SENSORS:', sensors if 'SENSORS' in globals() else 'default')
-    print('START_TIME:', START_DATE)
-    print('END_TIME:', END_DATE)
+    print('START_DATE:', START_DATE)
+    print('END_DATE:', END_DATE)
     print('DATE_CHUNKS:')
     for start, end in date_chunks:
-        print(f'\t{start.date()} - {end.date()}')
+        print(f'\t{start} - {end}')
     print()
 
 
@@ -200,15 +238,13 @@ def main():
     with open(MONITOR_CSV, 'r', encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
         for idx, monitor in enumerate(reader):
-            for sensor in sensors:
-                for start_date, end_date in date_chunks:
-                    work_queue.put({
-                        'idx': idx,
-                        'monitor': monitor,
-                        'start_time': start_date,
-                        'end_time': end_date,
-                        'sensor': sensor,
-                    })
+            for start_date, end_date in date_chunks:
+                work_queue.put({
+                    'idx': idx,
+                    'monitor': monitor,
+                    'start_date': start_date,
+                    'end_date': end_date,
+            })
 
     # Start the thread pool that will fetch the entries
     executor = concurrent.futures.ThreadPoolExecutor()
