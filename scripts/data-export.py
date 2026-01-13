@@ -19,7 +19,7 @@ MONITOR_CSV = 'sjvair-monitor-list.csv'
 RESULTS_CSV = 'data-export.csv'
 
 START_DATE = datetime.date(2025, 1, 1)
-END_DATE = datetime.date(2025, 3, 1)
+END_DATE = datetime.date(2025, 12, 31)
 
 # Default stage and calibration per pollutant
 # SCOPE = 'resolved'
@@ -159,6 +159,7 @@ def work_task(work_queue, write_queue):
 
         write_queue.put(entries)
         work_queue.task_done()
+        time.sleep(1)
     print('Worker stopped!')
 
 
@@ -248,7 +249,7 @@ def main():
 
     # Start the thread pool that will fetch the entries
     executor = concurrent.futures.ThreadPoolExecutor()
-    for x in range(10):
+    for x in range(4):
         executor.submit(work_task, work_queue, write_queue)
 
     # Start the thread that will write the results to disk
