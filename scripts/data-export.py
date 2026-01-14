@@ -31,10 +31,10 @@ RESULTS_CSV = 'data-export.csv'
 # --- Export time range
 
 # Inclusive start date for the export
-START_DATE = datetime.date(2025, 1, 1)
+START_DATE = datetime.date(2026, 1, 1)
 
 # Inclusive end date for the export
-END_DATE = datetime.date(2025, 3, 1)
+END_DATE = datetime.date(2026, 2, 1)
 
 
 # --- Export scope / data shape
@@ -362,6 +362,8 @@ def main():
                     'start_date': start_date,
                     'end_date': end_date,
             })
+
+    print(f'\nQueue size: {work_queue.qsize()}\n')
 
     # Start the thread pool that will fetch the entries
     executor = concurrent.futures.ThreadPoolExecutor()
