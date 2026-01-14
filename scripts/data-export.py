@@ -1,10 +1,11 @@
-import calendar
 import concurrent.futures
 import csv
 import datetime
 import functools
 import json
+import random
 import tempfile
+import threading
 import time
 import traceback
 import urllib.error
@@ -15,22 +16,133 @@ from pathlib import Path
 from queue import Queue
 from typing import Iterable
 
+# --------------------------------------------------------------------------- #
+# CONFIGURATION
+
+# --- Input / output files
+
+# CSV containing the list of monitors to export (one row per monitor)
 MONITOR_CSV = 'sjvair-monitor-list.csv'
+
+# Final CSV export written after NDJSON staging
 RESULTS_CSV = 'data-export.csv'
 
-START_DATE = datetime.date(2025, 1, 1)
-END_DATE = datetime.date(2025, 12, 31)
 
-# Default stage and calibration per pollutant
+# --- Export time range
+
+# Inclusive start date for the export
+START_DATE = datetime.date(2025, 1, 1)
+
+# Inclusive end date for the export
+END_DATE = datetime.date(2025, 3, 1)
+
+
+# --- Export scope / data shape
+
+# Export only the default stage + calibration per pollutant
 # SCOPE = 'resolved'
 
-# All stages and calibrations per pollutant
+# Export all stages, sensors, processors, and calibrations per pollutant
 SCOPE = 'expanded'
 
+
+# --- Load shaping and concurrency tuning
+# These values are intentionally conservative to avoid overloading the API.
+
+# Number of worker threads pulling tasks from the queue
+MAX_WORKERS = 10
+
+# Maximum number of in-flight HTTP requests at any given time
+MAX_CONNECTIONS = 4
+
+# Number of days of data requested per API call
+# Smaller values reduce response size and server-side processing cost
+DAYS_PER_REQUEST = 7
+
+# Number of retry attempts for transient failures
+REQUEST_RETRIES = 5
+
+
+# --- Network / API behavior
+
+# Base URL for the SJVAir API
 API_URL = 'https://www.sjvair.com/api/2.0/'
+
+# HTTP status codes treated as transient and eligible for retry/backoff
+RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 
 
 # --------------------------------------------------------------------------- #
+# UTILITIES
+
+def print_traceback(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception:
+            traceback.print_exc()
+            raise
+    return wrapper
+
+
+def print_settings(date_chunks: list[tuple[datetime.date, datetime.date]]) -> None:
+    print()
+    print('=== SJVAir Data Export Configuration ===')
+
+    print('\n[Files]')
+    print(f'  monitor_csv      : {MONITOR_CSV}')
+    print(f'  results_csv      : {RESULTS_CSV}')
+
+    print('\n[Date Range]')
+    print(f'  start_date       : {START_DATE}')
+    print(f'  end_date         : {END_DATE}')
+    print(f'  days_per_request : {DAYS_PER_REQUEST}')
+    print('  date_chunks:')
+    for start, end in date_chunks:
+        print(f'    - {start} -> {end}')
+
+    print('\n[Export Scope]')
+    print(f'  scope            : {SCOPE}')
+
+    print('\n[Load Shaping]')
+    print(f'  max_workers      : {MAX_WORKERS}')
+    print(f'  max_connections  : {MAX_CONNECTIONS}')
+    print(f'  request_retries  : {REQUEST_RETRIES}')
+
+    print('\n[API]')
+    print(f'  api_url          : {API_URL}')
+    print(f'  retryable_status : {sorted(RETRYABLE_STATUS)}')
+
+    print('\n========================================\n')
+
+
+def chunk_date_range(start_date, end_date, days=DAYS_PER_REQUEST):
+    '''Splits a date(time) range into chunks, each `days` long.'''
+
+    chunks = []
+    current_date = start_date
+
+    while current_date <= end_date:
+        period_end_date = current_date + datetime.timedelta(days=days - 1)
+        chunk_end_date = min(period_end_date, end_date)
+        chunks.append((current_date, chunk_end_date))
+        current_date = chunk_end_date + datetime.timedelta(days=1)
+
+    return chunks
+
+
+def iter_ndjson(path: Path) -> Iterable[dict]:
+    with path.open('r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            yield json.loads(line)
+
+
+# --------------------------------------------------------------------------- #
+# CSV HANDLING
 
 STATIC_HEADERS = [
     'monitor_id',
@@ -41,6 +153,7 @@ STATIC_HEADERS = [
     'timestamp_local',
     'timestamp',
 ]
+
 
 def build_csv_headers(seen_keys: set[str]) -> list[str]:
     # Keep your known "identity" columns first, then the rest sorted.
@@ -59,78 +172,84 @@ def parse_ewkt_point(value: str) -> tuple[float, float]:
         return None, None
 
 
-def print_traceback(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception:
-            traceback.print_exc()
-            raise
-    return wrapper
+# --------------------------------------------------------------------------- #
+# REQUEST HANDLING
+
+class CooldownGate:
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._until = 0.0
+
+    def wait(self) -> None:
+        with self._lock:
+            until = self._until
+        now = time.monotonic()
+        if now < until:
+            time.sleep(until - now)
+
+    def trip(self, seconds: float) -> None:
+        # Extend cooldown, do not shorten it
+        with self._lock:
+            self._until = max(self._until, time.monotonic() + seconds + random.random() * 0.5)
 
 
-def chunk_date_range(start_date, end_date):
-    '''Splits a date range into chunks, one for each month.'''
-
-    chunks = []
-    current_date = start_date
-    while current_date <= end_date:
-        month = current_date.month
-        year = current_date.year
-        last_day = calendar.monthrange(year, month)[1]
-        month_end_date = datetime.date(year, month, last_day)
-        chunk_end_date = min(month_end_date, end_date)
-        chunks.append((current_date, chunk_end_date))
-        current_date = chunk_end_date + datetime.timedelta(days=1)
-
-    chunks = [(start_date, end_date) for (start_date, end_date) in chunks]
-
-    return chunks
+IN_FLIGHT = threading.BoundedSemaphore(MAX_CONNECTIONS)
+COOLDOWN = CooldownGate()
 
 
-def iter_ndjson(path: Path) -> Iterable[dict]:
-    with path.open('r', encoding='utf-8') as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            yield json.loads(line)
+def fetch_json(url: str, timeout: int = 30) -> dict:
+    COOLDOWN.wait()
+    with IN_FLIGHT:
+        req = urllib.request.Request(url, headers={'Accept': 'application/json'})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            body = resp.read()
+    # If the body is truncated/invalid JSON, this will raise JSONDecodeError.
+    return json.loads(body)
 
 
-def fetch_entries(queue, idx, monitor, start_date, end_date, retry=5):
-    print(f'fetch_entries({idx}: {monitor["id"]}, {start_date}, {end_date}, {retry})')
+def parse_retry_after(err: urllib.error.HTTPError) -> float | None:
+    value = err.headers.get('Retry-After')
+    if not value:
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
+# --------------------------------------------------------------------------- #
+# CORE FETCHING LOGIC
+
+def fetch_entries(queue, idx, monitor, start_date, end_date):
     params = {
         'start_date': start_date,
         'end_date': end_date,
-        'scope': 'expanded',
+        'scope': SCOPE,
     }
 
     url = f'{API_URL}monitors/{monitor["id"]}/entries/export/json/?{urllib.parse.urlencode(params)}'
 
-    try:
-        response = urllib.request.urlopen(url)
-    except urllib.error.URLError as err:
-        # Retry logic for failed requests
-        if retry > 0:
-            backoff = (6 - retry) ** 3
-            print('\n'.join([
-                f'... fetch_entries({idx}: {monitor["id"]}, {start_date}, {end_date}, {retry})',
-                f'... > {getattr(err, "code", "Error")}: {err.reason}, retrying in {backoff} seconds...',
-            ]))
-            time.sleep(backoff)
-            return fetch_entries(
-                queue=queue,
-                idx=idx,
-                monitor=monitor,
-                start_date=start_date,
-                end_date=end_date,
-                retry=retry - 1
-            )
-        raise err
+    for attempt in range(REQUEST_RETRIES):
+        print(f'fetch_entries({idx}: {monitor["id"]}, {start_date}, {end_date}, {attempt})')
 
-    # Read the response and parse the JSON data
-    data = json.loads(response.read())
+        try:
+            data = fetch_json(url)
+            break
+        except urllib.error.HTTPError as err:
+            if err.code not in RETRYABLE_STATUS or attempt >= REQUEST_RETRIES:
+                raise
+            backoff = (parse_retry_after(err) or (2 ** attempt)) + random.random()
+            print(f'... {getattr(err, "code", "HTTPError")}: {err.reason} | retrying in {backoff:.1f}s ({attempt+1}/{REQUEST_RETRIES})')
+            COOLDOWN.trip(backoff)
+        except (TimeoutError, json.JSONDecodeError, urllib.error.URLError) as err:
+            # Almost always a partial response under load.
+            if attempt >= REQUEST_RETRIES:
+                raise
+            backoff = (2 ** attempt) + random.random()
+            print(f'... {err.__class__.__name__}: retrying in {backoff:.1f}s ({attempt+1}/{REQUEST_RETRIES})')
+            COOLDOWN.trip(backoff)
+    else:
+        raise RuntimeError(f'Failed after {REQUEST_RETRIES} attempts: {url}')
 
     longitude, latitude = parse_ewkt_point(monitor['position'])
 
@@ -142,6 +261,9 @@ def fetch_entries(queue, idx, monitor, start_date, end_date, retry=5):
         'name': monitor['name'],
     }, **entry) for entry in data['data']]
 
+
+# --------------------------------------------------------------------------- #
+# THREAD TASKS
 
 @print_traceback
 def work_task(work_queue, write_queue):
@@ -159,7 +281,7 @@ def work_task(work_queue, write_queue):
 
         write_queue.put(entries)
         work_queue.task_done()
-        time.sleep(1)
+
     print('Worker stopped!')
 
 
@@ -187,6 +309,7 @@ def write_task(write_queue):
                 seen_keys.update(entry.keys())
                 tmp.write(json.dumps(entry, separators=(',', ':')))
                 tmp.write('\n')
+                tmp.flush()
 
             write_queue.task_done()
 
@@ -210,6 +333,9 @@ def write_task(write_queue):
     print('Writer finished!')
 
 
+# --------------------------------------------------------------------------- #
+# MAIN
+
 def main():
     '''
         Fetch entries for all monitors in the MONITOR_CSV file between the
@@ -219,17 +345,7 @@ def main():
     TIMER_START = time.time()
 
     date_chunks = chunk_date_range(START_DATE, END_DATE)
-
-    print()
-    print('MONITOR_CSV:', MONITOR_CSV)
-    print('RESULTS_CSV:', RESULTS_CSV)
-    print('START_DATE:', START_DATE)
-    print('END_DATE:', END_DATE)
-    print('DATE_CHUNKS:')
-    for start, end in date_chunks:
-        print(f'\t{start} - {end}')
-    print()
-
+    print_settings(date_chunks)
 
     work_queue = Queue() # entries to fetch
     write_queue = Queue() # fetched entries to write
@@ -249,7 +365,7 @@ def main():
 
     # Start the thread pool that will fetch the entries
     executor = concurrent.futures.ThreadPoolExecutor()
-    for x in range(4):
+    for x in range(MAX_WORKERS):
         executor.submit(work_task, work_queue, write_queue)
 
     # Start the thread that will write the results to disk
