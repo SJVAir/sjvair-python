@@ -1,3 +1,4 @@
+import argparse
 import concurrent.futures
 import csv
 import datetime
@@ -21,9 +22,6 @@ from typing import Iterable
 
 # --- Input / output files
 
-# CSV containing the list of monitors to export (one row per monitor)
-MONITOR_CSV = 'sjvair-monitor-list.csv'
-
 # Final CSV export written after NDJSON staging
 RESULTS_CSV = 'data-export.csv'
 
@@ -31,10 +29,10 @@ RESULTS_CSV = 'data-export.csv'
 # --- Export time range
 
 # Inclusive start date for the export
-START_DATE = datetime.date(2026, 1, 1)
+START_DATE = datetime.date(2025, 1, 1)
 
 # Inclusive end date for the export
-END_DATE = datetime.date(2026, 2, 1)
+END_DATE = datetime.date(2025, 12, 31)
 
 
 # --- Export scope / data shape
@@ -86,24 +84,23 @@ def print_traceback(func):
     return wrapper
 
 
-def print_settings(date_chunks: list[tuple[datetime.date, datetime.date]]) -> None:
+def print_settings(date_chunks: list[tuple[datetime.date, datetime.date]], results_csv: str, start_date: datetime.date, end_date: datetime.date, scope: str) -> None:
     print()
     print('=== SJVAir Data Export Configuration ===')
 
     print('\n[Files]')
-    print(f'  monitor_csv      : {MONITOR_CSV}')
-    print(f'  results_csv      : {RESULTS_CSV}')
+    print(f'  results_csv      : {results_csv}')
 
     print('\n[Date Range]')
-    print(f'  start_date       : {START_DATE}')
-    print(f'  end_date         : {END_DATE}')
+    print(f'  start_date       : {start_date}')
+    print(f'  end_date         : {end_date}')
     print(f'  days_per_request : {DAYS_PER_REQUEST}')
     print('  date_chunks:')
     for start, end in date_chunks:
         print(f'    - {start} -> {end}')
 
     print('\n[Export Scope]')
-    print(f'  scope            : {SCOPE}')
+    print(f'  scope            : {scope}')
 
     print('\n[Load Shaping]')
     print(f'  max_workers      : {MAX_WORKERS}')
@@ -207,6 +204,12 @@ def fetch_json(url: str, timeout: int = 30) -> dict:
     return json.loads(body)
 
 
+def fetch_monitor(monitor_id: str) -> dict:
+    url = f'{API_URL}monitors/{monitor_id}/'
+    response = fetch_json(url)
+    return response.get('data', response)
+
+
 def parse_retry_after(err: urllib.error.HTTPError) -> float | None:
     value = err.headers.get('Retry-After')
     if not value:
@@ -220,11 +223,11 @@ def parse_retry_after(err: urllib.error.HTTPError) -> float | None:
 # --------------------------------------------------------------------------- #
 # CORE FETCHING LOGIC
 
-def fetch_entries(queue, idx, monitor, start_date, end_date):
+def fetch_entries(queue, idx, monitor, start_date, end_date, scope):
     params = {
         'start_date': start_date,
         'end_date': end_date,
-        'scope': SCOPE,
+        'scope': scope,
     }
 
     url = f'{API_URL}monitors/{monitor["id"]}/entries/export/json/?{urllib.parse.urlencode(params)}'
@@ -286,7 +289,7 @@ def work_task(work_queue, write_queue):
 
 
 @print_traceback
-def write_task(write_queue):
+def write_task(write_queue, results_csv: str, sort: bool = False):
     print('Writer started!')
 
     seen_keys: set[str] = set()
@@ -317,12 +320,14 @@ def write_task(write_queue):
 
     # Pass 2: write final CSV
     headers = build_csv_headers(seen_keys)
-    with open(RESULTS_CSV, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=headers, extrasaction='ignore')
+    with open(results_csv, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=headers, extrasaction='ignore', quoting=csv.QUOTE_NONNUMERIC)
         writer.writeheader()
 
-        for entry in iter_ndjson(tmp_path):
-            # DictWriter will write blank for missing keys automatically
+        rows = iter_ndjson(tmp_path)
+        if sort:
+            rows = sorted(rows, key=lambda r: r.get('timestamp', ''))
+        for entry in rows:
             writer.writerow(entry)
 
     try:
@@ -338,29 +343,54 @@ def write_task(write_queue):
 
 def main():
     '''
-        Fetch entries for all monitors in the MONITOR_CSV file between the
-        START_DATE and END_DATE, and write the results to the RESULTS_CSV.
+        Fetch entries for the given monitors between START_DATE and END_DATE,
+        and write the results to RESULTS_CSV. Monitors can be specified via
+        --monitors (ID list) or --csv (file with an 'id' column).
     '''
+
+    parser = argparse.ArgumentParser(description='SJVAir data export')
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument('--monitors', nargs='+', metavar='ID', help='One or more monitor IDs')
+    source.add_argument('--csv', metavar='FILE', help='CSV file with an "id" column')
+    parser.add_argument('--output', metavar='FILE', default=RESULTS_CSV, help=f'Output CSV file (default: {RESULTS_CSV})')
+    parser.add_argument('--start-date', metavar='YYYY-MM-DD', default=START_DATE, type=datetime.date.fromisoformat, help=f'Inclusive start date (default: {START_DATE})')
+    parser.add_argument('--end-date', metavar='YYYY-MM-DD', default=END_DATE, type=datetime.date.fromisoformat, help=f'Inclusive end date (default: {END_DATE})')
+    parser.add_argument('--scope', default=SCOPE, choices=['resolved', 'expanded'], help=f'Export scope (default: {SCOPE})')
+    parser.add_argument('--sort', action='store_true', help='Sort output by timestamp (loads all rows into memory)')
+    args = parser.parse_args()
 
     TIMER_START = time.time()
 
-    date_chunks = chunk_date_range(START_DATE, END_DATE)
-    print_settings(date_chunks)
+    date_chunks = chunk_date_range(args.start_date, args.end_date)
+    print_settings(date_chunks, args.output, args.start_date, args.end_date, args.scope)
+
+    # Collect monitor IDs from whichever source was given.
+    if args.monitors:
+        monitor_ids = args.monitors
+    else:
+        with open(args.csv, 'r', encoding='utf-8-sig') as f:
+            monitor_ids = [row['id'] for row in csv.DictReader(f)]
+
+    # Fetch full monitor details from the API.
+    print('Fetching monitor details...')
+    monitors = []
+    for monitor_id in monitor_ids:
+        print(f'  {monitor_id}')
+        monitors.append(fetch_monitor(monitor_id))
 
     work_queue = Queue() # entries to fetch
     write_queue = Queue() # fetched entries to write
 
-    # Open the MONITOR_CSV file and seed the work queue.
+    # Seed the work queue.
     print('Loading the work queue...')
-    with open(MONITOR_CSV, 'r', encoding='utf-8-sig') as f:
-        reader = csv.DictReader(f)
-        for idx, monitor in enumerate(reader):
-            for start_date, end_date in date_chunks:
-                work_queue.put({
-                    'idx': idx,
-                    'monitor': monitor,
-                    'start_date': start_date,
-                    'end_date': end_date,
+    for idx, monitor in enumerate(monitors):
+        for start_date, end_date in date_chunks:
+            work_queue.put({
+                'idx': idx,
+                'monitor': monitor,
+                'start_date': start_date,
+                'end_date': end_date,
+                'scope': args.scope,
             })
 
     print(f'\nQueue size: {work_queue.qsize()}\n')
@@ -371,7 +401,7 @@ def main():
         executor.submit(work_task, work_queue, write_queue)
 
     # Start the thread that will write the results to disk
-    executor.submit(write_task, write_queue)
+    executor.submit(write_task, write_queue, args.output, args.sort)
 
     # Wait for all the work to be done, then wrap it up.
     work_queue.join()
