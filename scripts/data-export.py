@@ -1,11 +1,11 @@
 import argparse
 import concurrent.futures
 import csv
+import dataclasses
 import datetime
 import functools
 import json
 import random
-import tempfile
 import threading
 import time
 import traceback
@@ -22,7 +22,7 @@ from typing import Iterable
 
 # --- Input / output files
 
-# Final CSV export written after NDJSON staging
+# Final CSV export written after all period chunks are concatenated
 RESULTS_CSV = 'data-export.csv'
 
 
@@ -42,6 +42,15 @@ END_DATE = datetime.date(2025, 12, 31)
 
 # Export all stages, sensors, processors, and calibrations per pollutant
 SCOPE = 'expanded'
+
+
+# --- Period chunking
+# The full date range is split into periods. Each period is fetched, written
+# to a chunked CSV, and the staging NDJSON is deleted before the next period
+# starts — keeping disk usage bounded.
+
+# Number of months per outer period chunk
+MONTHS_PER_PERIOD = 1
 
 
 # --- Load shaping and concurrency tuning
@@ -71,6 +80,20 @@ RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 
 
 # --------------------------------------------------------------------------- #
+# CONFIG
+
+@dataclasses.dataclass
+class ExportConfig:
+    output: str
+    build_dir: Path
+    start_date: datetime.date
+    end_date: datetime.date
+    scope: str
+    period_months: int
+    sort: bool
+
+
+# --------------------------------------------------------------------------- #
 # UTILITIES
 
 def print_traceback(func):
@@ -84,49 +107,71 @@ def print_traceback(func):
     return wrapper
 
 
-def print_settings(date_chunks: list[tuple[datetime.date, datetime.date]], results_csv: str, start_date: datetime.date, end_date: datetime.date, scope: str) -> None:
+def print_settings(config: ExportConfig, period_chunks):
     print()
     print('=== SJVAir Data Export Configuration ===')
 
     print('\n[Files]')
-    print(f'  results_csv      : {results_csv}')
+    print(f'  results_csv       : {config.output}')
+    print(f'  build_dir         : {config.build_dir}')
 
     print('\n[Date Range]')
-    print(f'  start_date       : {start_date}')
-    print(f'  end_date         : {end_date}')
-    print(f'  days_per_request : {DAYS_PER_REQUEST}')
-    print('  date_chunks:')
-    for start, end in date_chunks:
+    print(f'  start_date        : {config.start_date}')
+    print(f'  end_date          : {config.end_date}')
+    print(f'  months_per_period : {config.period_months}')
+    print(f'  days_per_request  : {DAYS_PER_REQUEST}')
+    print('  period_chunks:')
+    for start, end in period_chunks:
         print(f'    - {start} -> {end}')
 
     print('\n[Export Scope]')
-    print(f'  scope            : {scope}')
+    print(f'  scope             : {config.scope}')
 
     print('\n[Load Shaping]')
-    print(f'  max_workers      : {MAX_WORKERS}')
-    print(f'  max_connections  : {MAX_CONNECTIONS}')
-    print(f'  request_retries  : {REQUEST_RETRIES}')
+    print(f'  max_workers       : {MAX_WORKERS}')
+    print(f'  max_connections   : {MAX_CONNECTIONS}')
+    print(f'  request_retries   : {REQUEST_RETRIES}')
 
     print('\n[API]')
-    print(f'  api_url          : {API_URL}')
-    print(f'  retryable_status : {sorted(RETRYABLE_STATUS)}')
+    print(f'  api_url           : {API_URL}')
+    print(f'  retryable_status  : {sorted(RETRYABLE_STATUS)}')
 
     print('\n========================================\n')
 
 
 def chunk_date_range(start_date, end_date, days=DAYS_PER_REQUEST):
-    '''Splits a date(time) range into chunks, each `days` long.'''
-
+    '''Splits a date range into chunks, each `days` long.'''
     chunks = []
     current_date = start_date
-
     while current_date <= end_date:
         period_end_date = current_date + datetime.timedelta(days=days - 1)
         chunk_end_date = min(period_end_date, end_date)
         chunks.append((current_date, chunk_end_date))
         current_date = chunk_end_date + datetime.timedelta(days=1)
-
     return chunks
+
+
+def chunk_by_months(start_date, end_date, months=1):
+    '''Splits a date range into periods of `months` months each.'''
+    chunks = []
+    current = start_date
+    while current <= end_date:
+        # Advance by `months` months
+        advance = current.month - 1 + months
+        next_year = current.year + advance // 12
+        next_month = advance % 12 + 1
+        next_start = datetime.date(next_year, next_month, 1)
+        chunk_end = min(next_start - datetime.timedelta(days=1), end_date)
+        chunks.append((current, chunk_end))
+        current = next_start
+    return chunks
+
+
+def period_paths(build_dir: Path, output_csv: str, start: datetime.date, end: datetime.date) -> tuple[Path, Path]:
+    '''Returns (ndjson_path, chunk_csv_path) for a given period.'''
+    stem = Path(output_csv).stem
+    tag = f'{start}_{end}'
+    return build_dir / f'{stem}.{tag}.ndjson', build_dir / f'{stem}.{tag}.csv'
 
 
 def iter_ndjson(path: Path) -> Iterable[dict]:
@@ -158,13 +203,11 @@ def build_csv_headers(seen_keys: set[str]) -> list[str]:
     return [k for k in STATIC_HEADERS if k in seen_keys] + dynamic
 
 
-def parse_ewkt_point(value: str) -> tuple[float, float]:
-    # Expected: SRID=4326;POINT (lon lat)
+def parse_point(value) -> tuple[float, float]:
+    # GeoJSON: {"type": "Point", "coordinates": [lon, lat]}
     try:
-        _, point = value.split(';', 1)
-        coords = point.strip().lstrip('POINT').strip(' ()')
-        lon_str, lat_str = coords.split()
-        return float(lon_str), float(lat_str)
+        coords = value['coordinates']
+        return float(coords[0]), float(coords[1])
     except Exception:
         return None, None
 
@@ -254,7 +297,7 @@ def fetch_entries(queue, idx, monitor, start_date, end_date, scope):
     else:
         raise RuntimeError(f'Failed after {REQUEST_RETRIES} attempts: {url}')
 
-    longitude, latitude = parse_ewkt_point(monitor['position'])
+    longitude, latitude = parse_point(monitor['position'])
 
     return [dict({
         'monitor_id': monitor['id'],
@@ -289,16 +332,13 @@ def work_task(work_queue, write_queue):
 
 
 @print_traceback
-def write_task(write_queue, results_csv: str, sort: bool = False):
-    print('Writer started!')
+def write_ndjson_task(write_queue, ndjson_path: Path):
+    '''Write fetched entries to an NDJSON staging file.'''
+    print(f'Writer started: {ndjson_path}')
 
     seen_keys: set[str] = set()
 
-    # Pass 1: write NDJSON to a temp file and collect keys
-    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='-sjvair.ndjson', encoding='utf-8', newline='\n') as tmp:
-        tmp_path = Path(tmp.name)
-        print(f'Writing to tempfile: {tmp_path}')
-
+    with ndjson_path.open('w', encoding='utf-8', newline='\n') as f:
         while True:
             if write_queue.is_shutdown:
                 break
@@ -310,32 +350,101 @@ def write_task(write_queue, results_csv: str, sort: bool = False):
             entries = write_queue.get()
             for entry in entries:
                 seen_keys.update(entry.keys())
-                tmp.write(json.dumps(entry, separators=(',', ':')))
-                tmp.write('\n')
-                tmp.flush()
+                f.write(json.dumps(entry, separators=(',', ':')))
+                f.write('\n')
+                f.flush()
 
             write_queue.task_done()
 
-    print('Finished writing to tempfile, building CSV.')
+    print(f'Writer finished: {ndjson_path}')
+    return seen_keys
 
-    # Pass 2: write final CSV
+
+# --------------------------------------------------------------------------- #
+# PERIOD RUNNER
+
+def run_period(config: ExportConfig, monitors, start_date, end_date, ndjson_path: Path, chunk_csv: Path):
+    '''Fetch all monitors for one period, write chunked CSV, clean up NDJSON.'''
+    date_chunks = chunk_date_range(start_date, end_date)
+
+    work_queue = Queue()
+    write_queue = Queue()
+
+    for idx, monitor in enumerate(monitors):
+        for chunk_start, chunk_end in date_chunks:
+            work_queue.put({
+                'idx': idx,
+                'monitor': monitor,
+                'start_date': chunk_start,
+                'end_date': chunk_end,
+                'scope': config.scope,
+            })
+
+    print(f'  Queue size: {work_queue.qsize()}')
+
+    executor = concurrent.futures.ThreadPoolExecutor()
+    for _ in range(MAX_WORKERS):
+        executor.submit(work_task, work_queue, write_queue)
+
+    write_future = executor.submit(write_ndjson_task, write_queue, ndjson_path)
+
+    work_queue.join()
+    print('  Downloading complete.')
+
+    write_queue.join()
+    print('  Writing NDJSON complete.')
+
+    work_queue.shutdown()
+    write_queue.shutdown()
+    executor.shutdown()
+
+    seen_keys = write_future.result()
+
+    # Roll up NDJSON → chunked CSV, then delete NDJSON
+    print(f'  Rolling up to CSV: {chunk_csv}')
     headers = build_csv_headers(seen_keys)
-    with open(results_csv, 'w', newline='', encoding='utf-8') as f:
+    with chunk_csv.open('w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=headers, extrasaction='ignore', quoting=csv.QUOTE_NONNUMERIC)
         writer.writeheader()
 
-        rows = iter_ndjson(tmp_path)
-        if sort:
+        rows = iter_ndjson(ndjson_path)
+        if config.sort:
             rows = sorted(rows, key=lambda r: r.get('timestamp', ''))
         for entry in rows:
             writer.writerow(entry)
 
-    try:
-        tmp_path.unlink(missing_ok=True)
-    except Exception:
-        pass
+    ndjson_path.unlink(missing_ok=True)
+    print(f'  Chunk complete: {chunk_csv}')
 
-    print('Writer finished!')
+
+# --------------------------------------------------------------------------- #
+# FINAL CONCAT
+
+def concat_chunks(config: ExportConfig, chunk_csvs: list[Path]):
+    '''Concatenate all chunked CSVs into the final output CSV.'''
+    print(f'\nConcatenating {len(chunk_csvs)} chunk(s) into {config.output}...')
+
+    # Collect the union of all headers (preserving static column order)
+    seen_keys: set[str] = set()
+    for path in chunk_csvs:
+        with path.open('r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            seen_keys.update(reader.fieldnames or [])
+
+    headers = build_csv_headers(seen_keys)
+
+    with open(config.output, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=headers, extrasaction='ignore', quoting=csv.QUOTE_NONNUMERIC)
+        writer.writeheader()
+
+        # Stream chunks in order — no full in-memory sort at this scale.
+        # --sort already sorted each chunk during the per-period rollup.
+        for path in chunk_csvs:
+            with path.open('r', encoding='utf-8') as cf:
+                for row in csv.DictReader(cf):
+                    writer.writerow(row)
+
+    print(f'Final CSV written: {config.output}')
 
 
 # --------------------------------------------------------------------------- #
@@ -344,8 +453,10 @@ def write_task(write_queue, results_csv: str, sort: bool = False):
 def main():
     '''
         Fetch entries for the given monitors between START_DATE and END_DATE,
-        and write the results to RESULTS_CSV. Monitors can be specified via
-        --monitors (ID list) or --csv (file with an 'id' column).
+        broken into monthly (or N-month) periods. Each period is staged as a
+        chunked CSV; existing chunks are skipped so the run can resume after
+        a crash or network outage. All chunks are concatenated into the final
+        output CSV at the end.
     '''
 
     parser = argparse.ArgumentParser(description='SJVAir data export')
@@ -356,67 +467,61 @@ def main():
     parser.add_argument('--start-date', metavar='YYYY-MM-DD', default=START_DATE, type=datetime.date.fromisoformat, help=f'Inclusive start date (default: {START_DATE})')
     parser.add_argument('--end-date', metavar='YYYY-MM-DD', default=END_DATE, type=datetime.date.fromisoformat, help=f'Inclusive end date (default: {END_DATE})')
     parser.add_argument('--scope', default=SCOPE, choices=['resolved', 'expanded'], help=f'Export scope (default: {SCOPE})')
-    parser.add_argument('--sort', action='store_true', help='Sort output by timestamp (loads all rows into memory)')
+    parser.add_argument('--period-months', metavar='N', default=MONTHS_PER_PERIOD, type=int, help=f'Months per period chunk (default: {MONTHS_PER_PERIOD})')
+    parser.add_argument('--build-dir', metavar='DIR', default=None, help='Directory for staging files (default: <output-stem>-build/)')
+    parser.add_argument('--sort', action='store_true', help='Sort output by timestamp (loads all rows into memory at concat step)')
     args = parser.parse_args()
 
     TIMER_START = time.time()
 
-    date_chunks = chunk_date_range(args.start_date, args.end_date)
-    print_settings(date_chunks, args.output, args.start_date, args.end_date, args.scope)
+    build_dir = Path(args.build_dir) if args.build_dir else Path(Path(args.output).stem + '-build')
+    build_dir.mkdir(parents=True, exist_ok=True)
+
+    config = ExportConfig(
+        output=args.output,
+        build_dir=build_dir,
+        start_date=args.start_date,
+        end_date=args.end_date,
+        scope=args.scope,
+        period_months=args.period_months,
+        sort=args.sort,
+    )
+
+    period_chunks = chunk_by_months(config.start_date, config.end_date, config.period_months)
+    print_settings(config, period_chunks)
 
     # Collect monitor IDs from whichever source was given.
     if args.monitors:
         monitor_ids = args.monitors
     else:
-        with open(args.csv, 'r', encoding='utf-8-sig') as f:
-            monitor_ids = [row['id'] for row in csv.DictReader(f)]
+        with open(args.csv, 'r', encoding='utf-8-sig') as cf:
+            monitor_ids = [row['id'] for row in csv.DictReader(cf)]
 
     # Fetch full monitor details from the API.
     print('Fetching monitor details...')
     monitors = []
-    for monitor_id in monitor_ids:
-        print(f'  {monitor_id}')
+    for idx, monitor_id in enumerate(monitor_ids):
+        print(f'  {idx}.  {monitor_id}')
         monitors.append(fetch_monitor(monitor_id))
 
-    work_queue = Queue() # entries to fetch
-    write_queue = Queue() # fetched entries to write
+    # Process each period chunk, skipping any that already have a CSV on disk.
+    chunk_csvs = []
+    for period_start, period_end in period_chunks:
+        ndjson_path, chunk_csv = period_paths(config.build_dir, config.output, period_start, period_end)
+        chunk_csvs.append(chunk_csv)
 
-    # Seed the work queue.
-    print('Loading the work queue...')
-    for idx, monitor in enumerate(monitors):
-        for start_date, end_date in date_chunks:
-            work_queue.put({
-                'idx': idx,
-                'monitor': monitor,
-                'start_date': start_date,
-                'end_date': end_date,
-                'scope': args.scope,
-            })
+        if chunk_csv.exists():
+            print(f'\n[{period_start} -> {period_end}] Already fetched, skipping. ({chunk_csv.name})')
+            continue
 
-    print(f'\nQueue size: {work_queue.qsize()}\n')
+        print(f'\n[{period_start} -> {period_end}] Starting...')
+        run_period(config, monitors, period_start, period_end, ndjson_path, chunk_csv)
 
-    # Start the thread pool that will fetch the entries
-    executor = concurrent.futures.ThreadPoolExecutor()
-    for x in range(MAX_WORKERS):
-        executor.submit(work_task, work_queue, write_queue)
-
-    # Start the thread that will write the results to disk
-    executor.submit(write_task, write_queue, args.output, args.sort)
-
-    # Wait for all the work to be done, then wrap it up.
-    work_queue.join()
-    print('Downloading complete.')
-
-    write_queue.join()
-    print('Writing complete.')
-
-    print('Cleaning up and shutting down.')
-    work_queue.shutdown()
-    write_queue.shutdown()
-    executor.shutdown()
+    # Concatenate all chunked CSVs into the final output.
+    concat_chunks(config, chunk_csvs)
 
     TIMER_END = time.time()
-    print(f'Completed in {datetime.timedelta(seconds=TIMER_END - TIMER_START)}.')
+    print(f'\nCompleted in {datetime.timedelta(seconds=TIMER_END - TIMER_START)}.')
 
 
 if __name__ == '__main__':
