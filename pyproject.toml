@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sjvair"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = ["requests", "click", "python-dotenv"]
+
+[project.scripts]
+sjvair = "sjvair.cli.main:cli"
+
+[project.optional-dependencies]
+maps = ["matplotlib", "contextily", "geopandas", "shapely", "folium", "pyarrow"]
+
+[dependency-groups]
+dev = ["ruff", "ty", "pytest", "pytest-cov", "pytest-vcr", "responses"]
+
+[tool.pytest.ini_options]
+addopts = "--cov=sjvair --cov-report=term-missing"
+markers = ["live: requires live network (excluded from CI)"]
+
+[tool.coverage.run]
+source = ["sjvair"]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
