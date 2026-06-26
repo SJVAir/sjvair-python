@@ -60,6 +60,8 @@ sjvair/
                 get.py       # `sjvair monitors get <id>`
                 entries.py   # `sjvair monitors entries`
                 summaries.py # `sjvair monitors summaries`
+                current.py   # `sjvair monitors current`
+                closest.py   # `sjvair monitors closest`
             pesticides.py
             regions/
                 __init__.py  # `sjvair regions` Click group
@@ -125,6 +127,17 @@ def _paginate(self, path, params):
 
 Callers can `list()` for eager fetch or iterate for streaming. The export engine feeds from this iterator without loading everything into memory.
 
+### Context Manager
+
+`SJVAirClient` supports use as a context manager for explicit session teardown:
+
+```python
+with SJVAirClient() as client:
+    monitors = client.monitors.list()
+```
+
+Calls `session.close()` on exit. Optional but conventional for short-lived scripts.
+
 ---
 
 ## Resource API
@@ -136,7 +149,8 @@ Resources are accessed as attributes on the client instance. Nested resources (H
 client.monitors.list(is_sjvair=True)
 client.monitors.get('abc123')
 client.monitors.meta()
-client.monitors.entries('abc123', start_date='2025-01-01', end_date='2025-01-31', scope='resolved')
+client.monitors.entries('abc123', entry_type='pm25')  # paginated; filterable by sensor, stage, processor, timestamp
+client.monitors.export('abc123', start_date='2025-01-01', end_date='2025-01-31', scope='resolved')  # bulk; all pollutants flat; 180-day server max per request
 client.monitors.summaries('abc123', entry_type='pm25', resolution='daily', start_date='2025-01-01', end_date='2025-01-31')
 client.monitors.closest(entry_type='pm25', lat=36.7468, lon=-119.7726)  # returns up to 3 nearest active outdoor monitors with distance (ft) + latest entry
 client.monitors.current(entry_type='pm25')                               # all active+healthy monitors with latest entry; the live map feed
@@ -149,7 +163,7 @@ client.calenviroscreen.get(year=2021, tract='06019000100')
 client.regions.list(type='county')
 client.regions.get('abc123')
 client.regions.search('Fresno')
-client.regions.summaries('abc123', entry_type='pm25', resolution='daily', year=2025)
+client.regions.summaries('abc123', entry_type='pm25', resolution='daily', start_date='2025-01-01', end_date='2025-01-31')
 
 # CEIDARS
 client.ceidars.list()
@@ -211,8 +225,29 @@ sjvair.exceptions.ServerError    # 5xx
 
 `sjvair/export/engine.py` is a refactored, generic version of the chunked download machinery from `data-export.py`. It takes any paginating iterator as input — not just monitor entries.
 
-Key behaviors preserved:
-- Period chunking (date range split into N-month chunks)
+### Two entry endpoints — different jobs
+
+The API exposes two distinct entry endpoints that serve different purposes:
+
+**`/monitors/{id}/entries/{entry_type}/` — paginated `EntryList`**
+- Single pollutant type specified in URL path
+- Supports rich filtering: `sensor`, `stage`, `processor`, `timestamp` (with `__date`, `__lt`, `__gte`, etc.), timezone
+- Applies the monitor's default stage/calibration automatically if not specified
+- Page size: 10,080 entries (~7 days of hourly data); handles large ranges via pagination
+- Returns individual entry objects with sensor/stage/processor metadata preserved
+- Exposed as `client.monitors.entries(id, entry_type, **filters)` in the library
+
+**`/monitors/{id}/entries/export/json/` — streaming `EntryExportJSON`**
+- All pollutants merged into one wide row per timestamp (flat dataframe shape)
+- Params: `start_date`, `end_date`, `scope` (`resolved` / `expanded`)
+- **Hard 180-day server limit per request** — the reason `data-export.py` chunks by month
+- No pagination: streams within the window
+- Exposed as `client.monitors.export(id, start_date, end_date, scope='resolved')` in the library
+
+The CLI's `sjvair monitors entries` uses `export()`. The export engine wraps `export()` and handles period chunking to stay within the 180-day limit transparently. `entries()` is for programmatic/exploratory use where type isolation and filter control matter.
+
+### Export engine behaviors preserved:
+- Period chunking (date range split into N-month chunks; must stay ≤ 180 days per chunk)
 - Per-chunk NDJSON staging file (internal only), deleted after rollup
 - Resume support: existing chunk files are skipped
 - Threaded worker pool with `CooldownGate` and `BoundedSemaphore`
@@ -232,10 +267,10 @@ The CLI is download-focused. Every command is an implicit download. The library 
 ### Global Options (root `sjvair` group)
 
 ```
-sjvair [--version] [--base-url URL] [--api-key KEY] [--timeout N] [--quiet] <command>
+sjvair [--version] [--base-url URL] [--api-key KEY] [--timeout N] [--quiet] [--force] <command>
 ```
 
-`--version` prints the package version and exits. `--quiet` suppresses progress output (useful for scripts and piped output).
+`--version` prints the package version and exits. `--quiet` suppresses progress output (useful for scripts and piped output). `--force` allows overwriting an existing `--output` file; without it, the CLI errors if the target file already exists. Resume support (skipping existing chunk files) is unaffected by `--force` — it applies only to the final output file.
 
 Options are resolved in this priority order (highest to lowest):
 
@@ -321,6 +356,22 @@ sjvair monitors summaries
     over a month yields one row per monitor per hour). CLI translates date
     range into the appropriate API calls for the given resolution.
 
+sjvair monitors current
+    --type pm25|o3|...                  (required)
+    [--output FILE]
+    [--format csv|json]
+    Output: all active, healthy monitors with their latest entry for the given
+    type. Snapshot of the live map feed; useful for status exports.
+
+sjvair monitors closest
+    --type pm25|o3|...                  (required)
+    --lat FLOAT                         (required)
+    --lon FLOAT                         (required)
+    [--output FILE]
+    [--format json]
+    Output: up to 3 nearest active outdoor monitors to the given coordinates,
+    each with distance in feet and latest entry for the given type.
+
 # --- Regions ---
 
 sjvair regions list
@@ -399,7 +450,7 @@ headers, rows = client.monitors.list(format='tabular')
 
 # 'dataframe' — pandas DataFrame with PyArrow backend (requires sjvair[maps])
 df = client.monitors.list(format='dataframe')
-df = client.monitors.entries('abc123', start_date='2025-01-01', end_date='2025-01-31', format='dataframe')
+df = client.monitors.export('abc123', start_date='2025-01-01', end_date='2025-01-31', format='dataframe')
 
 # 'geodataframe' — GeoPandas GeoDataFrame with PyArrow backend (requires sjvair[maps])
 gdf = client.monitors.list(format='geodataframe')
@@ -482,6 +533,26 @@ Live-only tests (e.g. re-recording cassettes, testing against staging) are marke
 [dependency-groups]
 dev = ["ruff", "ty", "pytest", "pytest-cov", "pytest-vcr", "responses"]
 ```
+
+## CI/CD
+
+Two GitHub Actions workflows cover the full lifecycle:
+
+**`.github/workflows/ci.yml`** — runs on every PR and push to `main`:
+1. `ruff check` and `ruff format --check`
+2. `ty check`
+3. `pytest --cov=sjvair` with cassettes (no network)
+
+All three must pass before merge. Live tests (`@pytest.mark.live`) are excluded.
+
+**`.github/workflows/publish.yml`** — triggered by pushing a version tag (`v*`):
+1. Runs the full CI suite as a prerequisite
+2. Builds with `uv build`
+3. Publishes to PyPI using `uv publish` with a trusted publisher (OIDC, no stored API token)
+
+Releases follow **semantic versioning** (`MAJOR.MINOR.PATCH`). A `CHANGELOG.md` is maintained alongside `README.md` and updated with each release.
+
+---
 
 ## Packaging
 
