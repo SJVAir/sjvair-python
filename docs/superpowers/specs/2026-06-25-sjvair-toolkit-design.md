@@ -50,13 +50,17 @@ sjvair/
         main.py              # `sjvair` root Click group + global options
         commands/
             entries.py
-            summaries.py
             calibrations.py
             calenviroscreen.py
             ceidars.py
             hms.py
+            monitors/
+                __init__.py  # `sjvair monitors` Click group
+                summaries.py # `sjvair monitors summaries`
             pesticides.py
-            regions.py
+            regions/
+                __init__.py  # `sjvair regions` Click group
+                summaries.py # `sjvair regions summaries`
 pyproject.toml
 ```
 
@@ -247,14 +251,29 @@ sjvair entries
     [--output FILE]
     [--format csv|json]
 
-sjvair summaries
-    --type pm25|o3|...
-    --resolution hourly|daily|monthly|quarterly|seasonal|yearly
-    --year YYYY
-    [--county|--city|--zip|--tract|--region-id]
-    [--monitor-id ID]
+sjvair monitors summaries
+    --type pm25|o3|...                  (required)
+    --resolution hourly|daily|monthly|quarterly|seasonal|yearly  (required)
+    --start-date YYYY-MM-DD             (required)
+    --end-date YYYY-MM-DD               (required)
+    [--monitor-id ID ...]               (repeatable; mutually exclusive with region flags)
+    [--county|--city|--zip|--tract|--region-id]  (resolves to all monitors in region;
+                                                   mutually exclusive with --monitor-id)
     [--output FILE]
     [--format csv|json]
+    Output: one summary per monitor. CLI translates date range into the
+    appropriate API calls for the given resolution.
+
+sjvair regions summaries
+    --type pm25|o3|...                  (required)
+    --resolution hourly|daily|monthly|quarterly|seasonal|yearly  (required)
+    --start-date YYYY-MM-DD             (required)
+    --end-date YYYY-MM-DD               (required)
+    [--county|--city|--zip|--tract|--region-id]  (required; one of)
+    [--output FILE]
+    [--format csv|json]
+    Output: single pre-computed aggregate summary for the region. CLI
+    translates date range into the appropriate API calls for the given resolution.
 
 sjvair calibrations
     [--output FILE]
