@@ -273,8 +273,9 @@ sjvair regions summaries
     [--county|--city|--zip|--tract|--region-id]  (required; one of)
     [--output FILE]
     [--format csv|json]
-    Output: single pre-computed aggregate summary for the region. CLI
-    translates date range into the appropriate API calls for the given resolution.
+    Output: one aggregate summary row per time period for the region (e.g.
+    hourly resolution over a month yields one row per hour). CLI translates
+    date range into the appropriate API calls for the given resolution.
 
 sjvair calibrations
     [--output FILE]
