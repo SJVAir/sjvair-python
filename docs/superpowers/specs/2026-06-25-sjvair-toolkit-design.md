@@ -23,6 +23,7 @@ Transform the `sjvair-python` repo from a single data-export script into a compr
 - No write endpoints (POST/PUT/PATCH/DELETE)
 - No authentication — all endpoints are currently public (API key support stubbed but not implemented)
 - CLI does not wrap every API method — library is the interface for programmatic access
+- Calibrations endpoint excluded — internal use only, not part of the public toolkit
 
 ---
 
@@ -36,7 +37,7 @@ sjvair/
     resources/
         __init__.py
         monitors.py          # client.monitors.list(), .get(), .entries(), .summaries()
-        calibrations.py      # client.calibrations.list()
+        # calibrations intentionally excluded — internal use only
         calenviroscreen.py   # client.calenviroscreen.list(), .get()
         regions.py           # client.regions.list(), .get(), .search()
         ceidars.py           # client.ceidars.list(), .get(), .years()
@@ -49,17 +50,20 @@ sjvair/
         __init__.py
         main.py              # `sjvair` root Click group + global options
         commands/
-            entries.py
-            calibrations.py
             calenviroscreen.py
             ceidars.py
             hms.py
             monitors/
                 __init__.py  # `sjvair monitors` Click group
+                list.py      # `sjvair monitors list`
+                get.py       # `sjvair monitors get <id>`
+                entries.py   # `sjvair monitors entries`
                 summaries.py # `sjvair monitors summaries`
             pesticides.py
             regions/
                 __init__.py  # `sjvair regions` Click group
+                list.py      # `sjvair regions list`
+                get.py       # `sjvair regions get <id>`
                 summaries.py # `sjvair regions summaries`
 pyproject.toml
 ```
@@ -128,9 +132,6 @@ client.monitors.get('abc123')
 client.monitors.entries('abc123', start_date='2025-01-01', end_date='2025-01-31', scope='resolved')
 client.monitors.summaries('abc123', entry_type='pm25', resolution='daily', year=2025)
 client.monitors.meta()
-
-# Calibrations
-client.calibrations.list()
 
 # CalEnviroScreen
 client.calenviroscreen.list(year=2021)
@@ -236,7 +237,18 @@ Mutually exclusive. The CLI resolves named flags to a region ID via the search e
 ### Commands
 
 ```
-sjvair entries
+# --- Monitors ---
+
+sjvair monitors list
+    [--county|--city|--zip|--tract|--region-id]
+    [--is-sjvair]
+    [--output FILE]
+    [--format csv|json]
+
+sjvair monitors get <id>
+    [--format json]
+
+sjvair monitors entries
     --type pm25|o3|...                  (required; repeatable)
     --start-date YYYY-MM-DD             (required)
     --end-date YYYY-MM-DD               (required)
@@ -244,6 +256,7 @@ sjvair entries
     [--from-csv FILE]                   (CSV with 'id' column; mutually exclusive with --monitor-id and region flags)
     [--county|--city|--zip|--tract|--region-id]  (mutually exclusive with --monitor-id and --from-csv;
                                                    CLI resolves region → monitor list before downloading)
+    [--is-sjvair]                       (filter to SJVAir-owned monitors when using region flags)
     [--scope resolved|expanded]
     [--period-months N]
     [--workers N]
@@ -259,11 +272,25 @@ sjvair monitors summaries
     [--monitor-id ID ...]               (repeatable; mutually exclusive with region flags)
     [--county|--city|--zip|--tract|--region-id]  (resolves to all monitors in region;
                                                    mutually exclusive with --monitor-id)
+    [--is-sjvair]                       (filter to SJVAir-owned monitors when using region flags)
     [--output FILE]
     [--format csv|json]
     Output: one summary per monitor per time period (e.g. hourly resolution
     over a month yields one row per monitor per hour). CLI translates date
     range into the appropriate API calls for the given resolution.
+
+# --- Regions ---
+
+sjvair regions list
+    --type county|city|zipcode|tract|cdp|...  (required)
+    [--county|--city|--zip|--tract|--region-id]  (filter to regions within a parent region;
+                                                   e.g. --type city --county "Fresno County"
+                                                   returns all cities in Fresno County)
+    [--output FILE]
+    [--format csv|json]
+
+sjvair regions get <id>
+    [--format json]
 
 sjvair regions summaries
     --type pm25|o3|...                  (required)
@@ -277,37 +304,38 @@ sjvair regions summaries
     hourly resolution over a month yields one row per hour). CLI translates
     date range into the appropriate API calls for the given resolution.
 
-sjvair calibrations
-    [--output FILE]
-    [--format csv|json]
+# --- CalEnviroScreen ---
 
 sjvair calenviroscreen
     --year YYYY
+    [--county|--city|--zip|--tract|--region-id]
     [--output FILE]
     [--format csv|json]
+
+# --- CEIDARS ---
 
 sjvair ceidars
     [--county|--city|--zip|--tract|--region-id]
     [--output FILE]
     [--format csv|json]
 
+# --- HMS ---
+
 sjvair hms
-    --type smoke|fire
+    --type smoke|fire                   (required)
     [--start-date YYYY-MM-DD]
     [--end-date YYYY-MM-DD]
+    [--county|--city|--zip|--tract|--region-id]
     [--output FILE]
     [--format csv|json]
 
+# --- Pesticides ---
+
 sjvair pesticides
-    --type use|notice|chemicals|products
+    --type use|notice|chemicals|products  (required)
     [--county|--city|--zip|--tract|--region-id]
     [--start-date YYYY-MM-DD]
     [--end-date YYYY-MM-DD]
-    [--output FILE]
-    [--format csv|json]
-
-sjvair regions
-    [--type county|city|zipcode|tract|...]
     [--output FILE]
     [--format csv|json]
 ```
