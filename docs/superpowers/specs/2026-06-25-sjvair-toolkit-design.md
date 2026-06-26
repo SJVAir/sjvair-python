@@ -261,8 +261,9 @@ sjvair monitors summaries
                                                    mutually exclusive with --monitor-id)
     [--output FILE]
     [--format csv|json]
-    Output: one summary per monitor. CLI translates date range into the
-    appropriate API calls for the given resolution.
+    Output: one summary per monitor per time period (e.g. hourly resolution
+    over a month yields one row per monitor per hour). CLI translates date
+    range into the appropriate API calls for the given resolution.
 
 sjvair regions summaries
     --type pm25|o3|...                  (required)
