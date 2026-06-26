@@ -130,9 +130,11 @@ Resources are accessed as attributes on the client instance. Nested resources (H
 # Monitors
 client.monitors.list(is_sjvair=True)
 client.monitors.get('abc123')
-client.monitors.entries('abc123', start_date='2025-01-01', end_date='2025-01-31', scope='resolved')
-client.monitors.summaries('abc123', entry_type='pm25', resolution='daily', year=2025)
 client.monitors.meta()
+client.monitors.entries('abc123', start_date='2025-01-01', end_date='2025-01-31', scope='resolved')
+client.monitors.summaries('abc123', entry_type='pm25', resolution='daily', start_date='2025-01-01', end_date='2025-01-31')
+client.monitors.closest(entry_type='pm25', lat=36.7468, lon=-119.7726)  # returns up to 3 nearest active outdoor monitors with distance (ft) + latest entry
+client.monitors.current(entry_type='pm25')                               # all active+healthy monitors with latest entry; the live map feed
 
 # CalEnviroScreen
 client.calenviroscreen.list(year=2021)
@@ -203,8 +205,10 @@ The CLI is download-focused. Every command is an implicit download. The library 
 ### Global Options (root `sjvair` group)
 
 ```
-sjvair [--base-url URL] [--api-key KEY] [--timeout N] <command>
+sjvair [--version] [--base-url URL] [--api-key KEY] [--timeout N] [--quiet] <command>
 ```
+
+`--version` prints the package version and exits. `--quiet` suppresses progress output (useful for scripts and piped output).
 
 Options are resolved in this priority order (highest to lowest):
 
@@ -223,6 +227,10 @@ The same priority order applies when constructing `SJVAirClient` programmaticall
 
 Both formats are standard: CSV is a headed flat file; JSON is a standard JSON array (`[{...}, ...]`), not NDJSON. NDJSON is an internal implementation detail of the export engine and is never exposed to the user.
 
+### Progress Reporting
+
+Long-running downloads (entries, summaries over large date ranges) display a Click progress bar to stderr showing period chunks completed. `--quiet` suppresses it. Progress goes to stderr so stdout piping is unaffected.
+
 ### Region Flags (shared across commands that support geographic filtering)
 
 Mutually exclusive. The CLI resolves named flags to a region ID via the search endpoint internally.
@@ -234,6 +242,8 @@ Mutually exclusive. The CLI resolves named flags to a region ID via the search e
 --tract 06019000100
 --region-id <uuid>         # escape hatch for any region type or known ID
 ```
+
+**Ambiguous matches:** if a named flag resolves to more than one region (e.g. multiple cities named "Bakersfield" across counties), the CLI errors and prints a table of matches with their parent region and ID. The user then re-runs with `--region-id` to be precise. No silent disambiguation.
 
 ### Commands
 
@@ -383,6 +393,14 @@ Formatters live in `sjvair/formatters.py` and are the shared pipeline for both t
 
 ---
 
+## Backlog: Monitor Archives
+
+The API exposes pre-built monthly archive CSVs at `/monitors/{id}/archive/{year}/{month}/`. This is a significantly faster path for bulk historical data than the chunked download engine. However, the current server-side archive implementation needs to be rethought and re-implemented before this is worth wrapping in the client. Deferred until the server-side work is complete.
+
+## `--dry-run` on `monitors entries`
+
+Prints the resolved configuration (period chunks, monitor count, estimated API calls) without fetching any data — similar to the existing `print_settings()` in `data-export.py`. Useful for validating large jobs before committing. Output goes to stdout.
+
 ## Backlog: Map Generation
 
 Map output is planned but not in the initial implementation. The design is settled enough to reserve space for it in the output format system.
@@ -411,11 +429,42 @@ GeoPandas and PyArrow are shared between GeoDataFrame support and map rendering,
 
 ---
 
-## Packaging
+## Testing
 
-`pyproject.toml` entry point:
+Test runner: **pytest**. Two complementary layers:
+
+**Unit tests** — no network required. Cover:
+- Retry/backoff logic and `CooldownGate` behavior (using `responses` to mock `requests`)
+- Pagination generator
+- Date chunking utilities (`chunk_date_range`, `chunk_by_months`)
+- All formatters (`objects`, `tabular`, `dataframe`, `geodataframe`)
+- Region flag resolution and ambiguity error handling
+- CLI flag parsing and output format derivation from file extension
+
+**Resource tests** — recorded against the live API using `pytest-vcr`. Cassettes (YAML) are committed to the repo so tests run offline in CI without network access. Re-record with `--vcr-record=new_episodes` when the API changes. Cover each resource method with a representative call and assert on response shape.
+
+Live-only tests (e.g. re-recording cassettes, testing against staging) are marked `@pytest.mark.live` and excluded from CI by default.
+
+**Dev dependencies:**
 
 ```toml
+[dependency-groups]
+dev = ["ruff", "pytest", "pytest-cov", "pytest-vcr", "responses"]
+```
+
+## Packaging
+
+```toml
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sjvair"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = ["requests", "click", "python-dotenv"]
+
 [project.scripts]
 sjvair = "sjvair.cli.main:cli"
 
@@ -423,7 +472,7 @@ sjvair = "sjvair.cli.main:cli"
 maps = ["matplotlib", "contextily", "geopandas", "shapely", "folium", "pyarrow"]
 
 [dependency-groups]
-dev = ["ruff", "pytest"]
+dev = ["ruff", "pytest", "pytest-cov", "pytest-vcr", "responses"]
 
 [tool.ruff]
 target-version = "py310"
@@ -432,6 +481,6 @@ target-version = "py310"
 select = ["E", "F", "I"]   # pycodestyle errors, pyflakes, isort
 ```
 
-**Ruff** is the project linter and formatter — replaces flake8, isort, and black. Run via `ruff check` and `ruff format`. Configured in `pyproject.toml`.
+**Ruff** is the project linter and formatter — replaces flake8, isort, and black. Run via `ruff check` and `ruff format`.
 
 Python version: 3.10+.
