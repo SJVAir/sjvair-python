@@ -77,6 +77,11 @@ pyproject.toml
 - `click` — CLI framework
 - `python-dotenv` — loads `.env` files for environment variable support
 
+**Tooling (Astral stack):**
+- `uv` — package management and dev environment (`uv sync`, `uv run pytest`)
+- `ruff` — linting and formatting
+- `ty` — type checking
+
 ---
 
 ## Client Layer
@@ -166,6 +171,28 @@ client.pesticides.region_summary(region_id='abc123')
 ```
 
 ---
+
+## Logging
+
+The library uses a hierarchy of standard Python loggers — never `print()`. Each module gets its own logger via `logging.getLogger(__name__)`, which creates a hierarchy under the `sjvair` namespace (`sjvair.client`, `sjvair.resources.monitors`, etc.). Users control the whole package at once with:
+
+```python
+import logging
+logging.getLogger('sjvair').setLevel(logging.DEBUG)
+```
+
+A convenience re-export in `sjvair/__init__.py` makes this discoverable:
+
+```python
+import sjvair
+sjvair.log  # logging.getLogger('sjvair')
+```
+
+The CLI writes user-facing output (progress, errors) to stderr via Click. The library layer never touches stderr or stdout.
+
+## Type Hints
+
+The library is fully annotated. A `py.typed` marker file (PEP 561) is included so downstream type checkers recognize the package. Type checking is run with `ty` (Astral) as part of CI.
 
 ## Error Handling
 
@@ -260,7 +287,6 @@ sjvair monitors get <id>
     [--format json]
 
 sjvair monitors entries
-    --type pm25|o3|...                  (required; repeatable)
     --start-date YYYY-MM-DD             (required)
     --end-date YYYY-MM-DD               (required)
     [--monitor-id ID ...]               (repeatable; mutually exclusive with --from-csv and region flags)
@@ -268,9 +294,14 @@ sjvair monitors entries
     [--county|--city|--zip|--tract|--region-id]  (mutually exclusive with --monitor-id and --from-csv;
                                                    CLI resolves region → monitor list before downloading)
     [--is-sjvair]                       (filter to SJVAir-owned monitors when using region flags)
+    [--type pm25|o3|...]                (repeatable; filters output to specific entry types.
+                                         Requires server-side support — pending addition of entry_types
+                                         param to /monitors/{id}/entries/export/json/ — see TODO in
+                                         EntryExportMixin.get_dataframe())
     [--scope resolved|expanded]
     [--period-months N]
     [--workers N]
+    [--dry-run]                         (print resolved config without fetching)
     [--sort]                            (sort output by timestamp; loads chunk into memory at rollup step)
     [--output FILE]
     [--format csv|json]
@@ -449,7 +480,7 @@ Live-only tests (e.g. re-recording cassettes, testing against staging) are marke
 
 ```toml
 [dependency-groups]
-dev = ["ruff", "pytest", "pytest-cov", "pytest-vcr", "responses"]
+dev = ["ruff", "ty", "pytest", "pytest-cov", "pytest-vcr", "responses"]
 ```
 
 ## Packaging
@@ -481,6 +512,21 @@ target-version = "py310"
 select = ["E", "F", "I"]   # pycodestyle errors, pyflakes, isort
 ```
 
-**Ruff** is the project linter and formatter — replaces flake8, isort, and black. Run via `ruff check` and `ruff format`.
+**Tooling** is the full Astral stack: `uv` for package management, `ruff` for linting/formatting, `ty` for type checking.
+
+**`README.md`** is the PyPI page. It should cover: installation (`pip install sjvair` and `pip install sjvair[maps]`), quickstart examples for both the library and CLI, environment variable reference, and a link to the full API docs.
+
+**`py.typed`** marker file included in the package root (PEP 561) so downstream type checkers recognize the library.
+
+```toml
+[dependency-groups]
+dev = ["ruff", "ty", "pytest", "pytest-cov", "pytest-vcr", "responses"]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+```
 
 Python version: 3.10+.
