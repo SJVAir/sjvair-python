@@ -31,7 +31,6 @@ pass_ctx = click.make_pass_decorator(_ClientContext)
 @click.pass_context
 def cli(ctx: click.Context, base_url: str | None, api_key: str | None, timeout: int | None, quiet: bool, force: bool) -> None:
     """SJVAir data download CLI."""
-    ctx.ensure_object(dict)
     client = SJVAirClient(base_url=base_url, api_key=api_key, timeout=timeout)
     ctx.obj = _ClientContext(client=client, quiet=quiet, force=force)
 
