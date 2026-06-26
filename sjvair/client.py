@@ -48,7 +48,10 @@ class SJVAirClient:
         self.base_url = (
             base_url or os.environ.get('SJVAIR_BASE_URL') or DEFAULT_BASE_URL
         ).rstrip('/') + '/'
-        self.timeout = int(timeout or os.environ.get('SJVAIR_TIMEOUT') or DEFAULT_TIMEOUT)
+        self.timeout = int(
+            timeout if timeout is not None
+            else os.environ.get('SJVAIR_TIMEOUT') or DEFAULT_TIMEOUT
+        )
         self.max_retries = int(max_retries if max_retries is not None else DEFAULT_MAX_RETRIES)
         self.api_key = api_key or os.environ.get('SJVAIR_API_KEY')
 
