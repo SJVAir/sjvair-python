@@ -1,6 +1,7 @@
 import pytest
 import responses as rsps
 from responses import matchers
+from unittest import mock
 
 from sjvair.client import SJVAirClient
 from sjvair.exceptions import NotFound, RateLimited, ServerError
@@ -64,3 +65,34 @@ def test_resource_accessors():
     client = SJVAirClient()
     assert isinstance(client.monitors, MonitorsResource)
     assert isinstance(client.regions, RegionsResource)
+
+
+@rsps.activate
+def test_get_retries_on_server_error_then_succeeds():
+    rsps.add(rsps.GET, BASE + 'monitors/', status=500)
+    rsps.add(rsps.GET, BASE + 'monitors/', json={'data': []})
+    with mock.patch('time.sleep') as mock_sleep:
+        result = SJVAirClient(max_retries=1).get('monitors/')
+    assert result == {'data': []}
+    mock_sleep.assert_called_once_with(1.0)
+
+
+@rsps.activate
+def test_get_retries_on_rate_limited_then_succeeds():
+    rsps.add(rsps.GET, BASE + 'monitors/', status=429, headers={'Retry-After': '1'})
+    rsps.add(rsps.GET, BASE + 'monitors/', json={'data': []})
+    with mock.patch('time.sleep') as mock_sleep:
+        result = SJVAirClient(max_retries=1).get('monitors/')
+    assert result == {'data': []}
+    # delay = (exc.retry_after or 60) * (2 ** attempt)
+    # = 1.0 * (2 ** 0) = 1.0
+    mock_sleep.assert_called_once_with(1.0)
+
+
+@rsps.activate
+def test_env_api_key(monkeypatch):
+    monkeypatch.setenv('SJVAIR_API_KEY', 'envkey')
+    rsps.add(rsps.GET, BASE + 'monitors/',
+             match=[matchers.header_matcher({'Authorization': 'Bearer envkey'})],
+             json={'data': []})
+    SJVAirClient().get('monitors/')
