@@ -25,6 +25,8 @@ def monitors_closest(
     data = ctx.client.monitors.closest(entry_type, lat, lon)
     text = json.dumps(data, indent=2, default=str)
     if output_path:
+        if output_path.exists() and not ctx.force:
+            raise click.ClickException(f'{output_path} already exists. Use --force to overwrite.')
         output_path.write_text(text, encoding='utf-8')
     else:
         click.echo(text)

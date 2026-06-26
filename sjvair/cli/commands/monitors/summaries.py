@@ -45,6 +45,9 @@ def monitors_summaries(
     fmt: str | None,
 ) -> None:
     """Download monitor summaries."""
+    region_inputs = [x for x in (county, city, zip_code, tract, region_id) if x]
+    if len(region_inputs) > 1:
+        raise click.UsageError('Only one region filter may be specified at a time.')
     ids: list[str]
     if monitor_ids:
         ids = list(monitor_ids)

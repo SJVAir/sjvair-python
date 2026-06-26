@@ -30,6 +30,9 @@ def monitors_list(
     fmt: str | None,
 ) -> None:
     """List monitors."""
+    region_inputs = [x for x in (county, city, zip_code, tract, region_id) if x]
+    if len(region_inputs) > 1:
+        raise click.UsageError('Only one region filter may be specified at a time.')
     region = resolve_region(ctx.client, county, city, zip_code, tract, region_id)
     params: dict = {}
     if is_sjvair:

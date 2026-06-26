@@ -49,6 +49,9 @@ def monitors_entries(
     fmt: str | None,
 ) -> None:
     """Download monitor entries (bulk export)."""
+    region_inputs = [x for x in (county, city, zip_code, tract, region_id) if x]
+    if len(region_inputs) > 1:
+        raise click.UsageError('Only one region filter may be specified at a time.')
     # Resolve monitor list
     ids: list[str]
     if from_csv:
