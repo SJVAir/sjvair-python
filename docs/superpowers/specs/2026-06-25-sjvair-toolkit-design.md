@@ -178,10 +178,15 @@ sjvair.exceptions.ServerError    # 5xx
 
 Key behaviors preserved:
 - Period chunking (date range split into N-month chunks)
-- Per-chunk NDJSON staging file, deleted after CSV rollup
-- Resume support: existing chunk CSVs are skipped
+- Per-chunk NDJSON staging file (internal only), deleted after rollup
+- Resume support: existing chunk files are skipped
 - Threaded worker pool with `CooldownGate` and `BoundedSemaphore`
 - Final concatenation across all chunks into a single output file
+
+`sjvair/export/formats.py` handles rollup from NDJSON staging files into the final user-facing format:
+
+- **CSV rollup**: existing behavior from `data-export.py` — reads NDJSON chunks, writes a headed CSV with dynamic column detection
+- **JSON rollup**: same pattern — reads NDJSON chunks, writes a standard JSON array (`[{...}, ...]`) using incremental writes (`[`, item, `,`, ..., `]`) so the full dataset is never held in memory at once. Works identically whether the target is a file or stdout.
 
 ---
 
@@ -206,9 +211,11 @@ The same priority order applies when constructing `SJVAirClient` programmaticall
 
 ### Output & Format
 
-- `--output FILE` — write to file; format derived from extension (`.csv` → CSV, `.json` → NDJSON)
-- No `--output` — write to stdout, defaults to NDJSON
+- `--output FILE` — write to file; format derived from extension (`.csv` → CSV, `.json` → JSON)
+- No `--output` — write to stdout, defaults to JSON
 - `--format csv|json` — explicit override; always takes precedence
+
+Both formats are standard: CSV is a headed flat file; JSON is a standard JSON array (`[{...}, ...]`), not NDJSON. NDJSON is an internal implementation detail of the export engine and is never exposed to the user.
 
 ### Region Flags (shared across commands that support geographic filtering)
 
