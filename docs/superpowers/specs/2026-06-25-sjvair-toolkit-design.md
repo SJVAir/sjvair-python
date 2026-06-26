@@ -66,6 +66,7 @@ pyproject.toml
 
 - `requests` — HTTP client (replaces urllib in data-export.py)
 - `click` — CLI framework
+- `python-dotenv` — loads `.env` files for environment variable support
 
 ---
 
@@ -193,6 +194,15 @@ The CLI is download-focused. Every command is an implicit download. The library 
 ```
 sjvair [--base-url URL] [--api-key KEY] [--timeout N] <command>
 ```
+
+Options are resolved in this priority order (highest to lowest):
+
+1. Explicit CLI flag
+2. Environment variable (`SJVAIR_BASE_URL`, `SJVAIR_API_KEY`, `SJVAIR_TIMEOUT`)
+3. `.env` file in the current working directory (loaded via `python-dotenv`)
+4. Built-in default
+
+The same priority order applies when constructing `SJVAirClient` programmatically — it reads the same env vars if constructor arguments are not provided.
 
 ### Output & Format
 
