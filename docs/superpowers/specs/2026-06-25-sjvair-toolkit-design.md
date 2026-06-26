@@ -342,6 +342,63 @@ sjvair pesticides
 
 ---
 
+## GeoDataFrame Support
+
+Resource list/entries/summaries methods accept `as_geodataframe=True` to return a `geopandas.GeoDataFrame` instead of an iterator of dicts. The geometry column is populated from each resource's spatial field:
+
+| Resource | Geometry source |
+|---|---|
+| monitors | `position` (Point) |
+| regions | `boundary` (Polygon/MultiPolygon) |
+| calenviroscreen | `boundary` (census tract polygon) |
+| ceidars | facility coordinates (Point) |
+| hms smoke | `geometry` (Polygon) |
+| hms fire | coordinates (Point) |
+| pesticides use/notice | region geometry |
+
+```python
+# Iterator of dicts (default — no GeoPandas required)
+for monitor in client.monitors.list(is_sjvair=True):
+    print(monitor)
+
+# GeoDataFrame (requires sjvair[maps])
+gdf = client.monitors.list(is_sjvair=True, as_geodataframe=True)
+gdf = client.monitors.entries('abc123', start_date='2025-01-01', end_date='2025-01-31', as_geodataframe=True)
+gdf = client.hms.smoke.list(date='2025-09-15', as_geodataframe=True)
+```
+
+GeoPandas is a soft dependency — importing it is deferred until `as_geodataframe=True` is passed, with a clear error message pointing to `pip install sjvair[maps]` if missing.
+
+---
+
+## Backlog: Map Generation
+
+Map output is planned but not in the initial implementation. The design is settled enough to reserve space for it in the output format system.
+
+### Approach
+
+- **`.png` / `.jpg`** → `sjvair.maps.StaticMap` (extracted from `sjvair.com/camp/utils/maps.py`)
+- **`.html`** → Folium (interactive, Leaflet.js-backed)
+- Both triggered by `--output` file extension, same as CSV and JSON
+
+### Extracting `StaticMap` from the server
+
+`camp/utils/maps.py` is the canonical implementation. For the package:
+- Remove `GEOSGeometry` handling — the extracted version works with Shapely geometries only; `sjvair.com` keeps thin `to_shape()`/`to_geos()` adapter functions
+- Replace `settings.MAPTILER_API_KEY` with a constructor parameter defaulting to `None`; fall back to `ctx.providers.OpenStreetMap.Mapnik` when no key is provided so the CLI works without a MapTiler account
+- Replace `django.utils.timezone` with stdlib `datetime` in the tile cache path
+
+### Optional extra
+
+```toml
+[project.optional-dependencies]
+maps = ["matplotlib", "contextily", "geopandas", "shapely", "folium"]
+```
+
+GeoPandas is shared between GeoDataFrame support and map rendering, so both features install together under `sjvair[maps]`.
+
+---
+
 ## Packaging
 
 `pyproject.toml` entry point:
