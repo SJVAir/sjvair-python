@@ -34,6 +34,7 @@ sjvair/
     __init__.py              # re-exports SJVAirClient
     client.py                # SJVAirClient — HTTP session, retries, rate limiting
     exceptions.py            # SJVAirError, NotFound, RateLimited, ServerError
+    formatters.py            # objects, tabular, dataframe, geodataframe formatters
     resources/
         __init__.py
         monitors.py          # client.monitors.list(), .get(), .entries(), .summaries()
@@ -342,9 +343,33 @@ sjvair pesticides
 
 ---
 
-## GeoDataFrame Support
+## Output Formatters
 
-Resource list/entries/summaries methods accept `as_geodataframe=True` to return a `geopandas.GeoDataFrame` instead of an iterator of dicts. The geometry column is populated from each resource's spatial field:
+Resource list methods (`.list()`, `.entries()`, `.summaries()`, etc.) accept a `format` parameter that controls the return type. Single-object methods (`.get()`) always return a plain dict.
+
+```python
+# 'objects' (default) — iterator of dicts, no extra dependencies
+client.monitors.list()
+client.monitors.list(format='objects')
+
+# 'tabular' — (headers: list[str], rows: iterator[list]) tuple
+# Keys not repeated per row; efficient for CSV writing and large datasets
+headers, rows = client.monitors.list(format='tabular')
+
+# 'dataframe' — pandas DataFrame with PyArrow backend (requires sjvair[maps])
+df = client.monitors.list(format='dataframe')
+df = client.monitors.entries('abc123', start_date='2025-01-01', end_date='2025-01-31', format='dataframe')
+
+# 'geodataframe' — GeoPandas GeoDataFrame with PyArrow backend (requires sjvair[maps])
+gdf = client.monitors.list(format='geodataframe')
+gdf = client.hms.smoke.list(date='2025-09-15', format='geodataframe')
+```
+
+Formatters live in `sjvair/formatters.py` and are the shared pipeline for both the library and the CLI. CLI commands select the formatter based on `--output` extension and `--format` flag; the resource method just applies it. `dataframe` and `geodataframe` formats raise a clear error pointing to `pip install sjvair[maps]` if dependencies are missing.
+
+**PyArrow backend:** DataFrames and GeoDataFrames use `dtype_backend='pyarrow'` for memory efficiency — important given the volume of time-series and pesticide data users may work with.
+
+**GeoDataFrame geometry sources:**
 
 | Resource | Geometry source |
 |---|---|
@@ -355,19 +380,6 @@ Resource list/entries/summaries methods accept `as_geodataframe=True` to return 
 | hms smoke | `geometry` (Polygon) |
 | hms fire | coordinates (Point) |
 | pesticides use/notice | region geometry |
-
-```python
-# Iterator of dicts (default — no GeoPandas required)
-for monitor in client.monitors.list(is_sjvair=True):
-    print(monitor)
-
-# GeoDataFrame (requires sjvair[maps])
-gdf = client.monitors.list(is_sjvair=True, as_geodataframe=True)
-gdf = client.monitors.entries('abc123', start_date='2025-01-01', end_date='2025-01-31', as_geodataframe=True)
-gdf = client.hms.smoke.list(date='2025-09-15', as_geodataframe=True)
-```
-
-GeoPandas is a soft dependency — importing it is deferred until `as_geodataframe=True` is passed, with a clear error message pointing to `pip install sjvair[maps]` if missing.
 
 ---
 
@@ -392,10 +404,10 @@ Map output is planned but not in the initial implementation. The design is settl
 
 ```toml
 [project.optional-dependencies]
-maps = ["matplotlib", "contextily", "geopandas", "shapely", "folium"]
+maps = ["matplotlib", "contextily", "geopandas", "shapely", "folium", "pyarrow"]
 ```
 
-GeoPandas is shared between GeoDataFrame support and map rendering, so both features install together under `sjvair[maps]`.
+GeoPandas and PyArrow are shared between GeoDataFrame support and map rendering, so both features install together under `sjvair[maps]`.
 
 ---
 
@@ -406,6 +418,20 @@ GeoPandas is shared between GeoDataFrame support and map rendering, so both feat
 ```toml
 [project.scripts]
 sjvair = "sjvair.cli.main:cli"
+
+[project.optional-dependencies]
+maps = ["matplotlib", "contextily", "geopandas", "shapely", "folium", "pyarrow"]
+
+[dependency-groups]
+dev = ["ruff", "pytest"]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]   # pycodestyle errors, pyflakes, isort
 ```
+
+**Ruff** is the project linter and formatter — replaces flake8, isort, and black. Run via `ruff check` and `ruff format`. Configured in `pyproject.toml`.
 
 Python version: 3.10+.
