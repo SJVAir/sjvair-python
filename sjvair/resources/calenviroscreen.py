@@ -1,11 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ..client import SJVAirClient
+from . import BaseResource
 
 
-class CalEnviroScreenResource:
-    def __init__(self, client: 'SJVAirClient') -> None:
-        self._client = client
+class CalEnviroScreenResource(BaseResource):
+    pass
