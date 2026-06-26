@@ -92,10 +92,7 @@ class ExportEngine:
 
         staging_files: list[Path] = []
         with ThreadPoolExecutor(max_workers=self.max_workers) as pool:
-            futures = {
-                pool.submit(self._download_chunk, mid, cs, ce): (mid, cs, ce)
-                for mid, cs, ce in jobs
-            }
+            futures = {pool.submit(self._download_chunk, mid, cs, ce): (mid, cs, ce) for mid, cs, ce in jobs}
             for future in as_completed(futures):
                 mid, cs, ce = futures[future]
                 try:

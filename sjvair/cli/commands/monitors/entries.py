@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import csv
+from datetime import date
 from pathlib import Path
 
 import click
 
-from ...main import pass_ctx
-from ...utils import format_from_path, resolve_region
 from ....export.engine import ExportEngine, chunk_date_range
-from datetime import date
+from ...main import _ClientContext, pass_ctx
+from ...utils import format_from_path, resolve_region
 
 
 @click.command('entries')
@@ -30,7 +30,7 @@ from datetime import date
 @click.option('--format', 'fmt', type=click.Choice(['csv', 'json']), default=None)
 @pass_ctx
 def monitors_entries(
-    ctx: object,
+    ctx: _ClientContext,
     start_date: str,
     end_date: str,
     monitor_ids: tuple[str, ...],

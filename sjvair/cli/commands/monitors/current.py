@@ -4,7 +4,7 @@ from pathlib import Path
 
 import click
 
-from ...main import pass_ctx
+from ...main import _ClientContext, pass_ctx
 from ...utils import format_from_path, write_output
 
 
@@ -14,7 +14,7 @@ from ...utils import format_from_path, write_output
 @click.option('--format', 'fmt', type=click.Choice(['csv', 'json']), default=None)
 @pass_ctx
 def monitors_current(
-    ctx: object,
+    ctx: _ClientContext,
     entry_type: str,
     output_path: Path | None,
     fmt: str | None,

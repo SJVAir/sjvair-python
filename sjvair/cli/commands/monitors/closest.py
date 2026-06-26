@@ -5,7 +5,7 @@ from pathlib import Path
 
 import click
 
-from ...main import pass_ctx
+from ...main import _ClientContext, pass_ctx
 
 
 @click.command('closest')
@@ -15,7 +15,7 @@ from ...main import pass_ctx
 @click.option('--output', 'output_path', type=click.Path(path_type=Path), default=None)
 @pass_ctx
 def monitors_closest(
-    ctx: object,
+    ctx: _ClientContext,
     entry_type: str,
     lat: float,
     lon: float,

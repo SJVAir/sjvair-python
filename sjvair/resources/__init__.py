@@ -13,8 +13,8 @@ class BaseResource:
     def _paginate(self, path: str, params: dict[str, Any] | None = None) -> Iterator[dict[str, Any]]:
         page = 1
         while True:
-            data = self._client.get(path, {**(params or {}), "page": page})
-            yield from data["data"]
-            if not data.get("has_next_page"):
+            data = self._client.get(path, {**(params or {}), 'page': page})
+            yield from data['data']
+            if not data.get('has_next_page'):
                 break
             page += 1

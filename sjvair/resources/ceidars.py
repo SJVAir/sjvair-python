@@ -14,5 +14,5 @@ class CEIDARSResource(BaseResource):
     def get(self, facility_id: str) -> dict[str, Any]:
         return self._client.get(f'{self.PATH}{facility_id}/')['data']
 
-    def years(self) -> list[int]:
+    def years(self) -> list[int]:  # ty: ignore[invalid-type-form]
         return self._client.get(f'{self.PATH}years/')['data']

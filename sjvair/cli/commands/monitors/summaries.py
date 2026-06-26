@@ -5,7 +5,7 @@ from pathlib import Path
 
 import click
 
-from ...main import pass_ctx
+from ...main import _ClientContext, pass_ctx
 from ...utils import format_from_path, resolve_region, write_output
 
 
@@ -29,7 +29,7 @@ from ...utils import format_from_path, resolve_region, write_output
 @click.option('--format', 'fmt', type=click.Choice(['csv', 'json']), default=None)
 @pass_ctx
 def monitors_summaries(
-    ctx: object,
+    ctx: _ClientContext,
     entry_type: str,
     resolution: str,
     start_date: str,
@@ -56,8 +56,7 @@ def monitors_summaries(
         ids = [m['id'] for m in ctx.client.monitors.list(**params)]
 
     data = itertools.chain.from_iterable(
-        ctx.client.monitors.summaries(mid, entry_type, resolution, start_date, end_date)
-        for mid in ids
+        ctx.client.monitors.summaries(mid, entry_type, resolution, start_date, end_date) for mid in ids
     )
     fmt = format_from_path(output_path, fmt)
     write_output(data, fmt, output_path, force=ctx.force)

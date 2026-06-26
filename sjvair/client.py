@@ -45,13 +45,8 @@ class SJVAirClient:
         max_connections: int | None = None,
         api_key: str | None = None,
     ) -> None:
-        self.base_url = (
-            base_url or os.environ.get('SJVAIR_BASE_URL') or DEFAULT_BASE_URL
-        ).rstrip('/') + '/'
-        self.timeout = int(
-            timeout if timeout is not None
-            else os.environ.get('SJVAIR_TIMEOUT') or DEFAULT_TIMEOUT
-        )
+        self.base_url = (base_url or os.environ.get('SJVAIR_BASE_URL') or DEFAULT_BASE_URL).rstrip('/') + '/'
+        self.timeout = int(timeout if timeout is not None else os.environ.get('SJVAIR_TIMEOUT') or DEFAULT_TIMEOUT)
         self.max_retries = int(max_retries if max_retries is not None else DEFAULT_MAX_RETRIES)
         self.api_key = api_key or os.environ.get('SJVAIR_API_KEY')
 
@@ -103,14 +98,14 @@ class SJVAirClient:
                     last_exc = exc
                     if attempt >= self.max_retries:
                         raise
-                    delay = (exc.retry_after or 60) * (2 ** attempt)
+                    delay = (exc.retry_after or 60) * (2**attempt)
                     log.warning('Rate limited; cooling down %.1fs', delay)
                     self._cooldown.cooldown(delay)
                 except ServerError as exc:
                     last_exc = exc
                     if attempt >= self.max_retries:
                         raise
-                    delay = float(2 ** attempt)
+                    delay = float(2**attempt)
                     log.warning('Server error attempt %d; retry in %.1fs', attempt + 1, delay)
                     time.sleep(delay)
             raise last_exc

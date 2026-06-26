@@ -71,12 +71,15 @@ class MonitorsResource(BaseResource):
     ) -> Iterator[dict[str, Any]]:
         base = f'{self.PATH}{monitor_id}/summaries/'
         paths = _iter_summary_paths(
-            base, entry_type, resolution,
-            date.fromisoformat(start_date), date.fromisoformat(end_date),
+            base,
+            entry_type,
+            resolution,
+            date.fromisoformat(start_date),
+            date.fromisoformat(end_date),
         )
         return itertools.chain.from_iterable(self._paginate(p) for p in paths)
 
-    def closest(self, entry_type: str, lat: float, lon: float) -> list[dict[str, Any]]:
+    def closest(self, entry_type: str, lat: float, lon: float) -> list[dict[str, Any]]:  # ty: ignore[invalid-type-form]
         return self._client.get(f'monitors/{entry_type}/closest/', {'lat': lat, 'lon': lon})['data']
 
     def current(self, entry_type: str) -> Iterator[dict[str, Any]]:

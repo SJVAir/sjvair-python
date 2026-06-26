@@ -4,7 +4,7 @@ from pathlib import Path
 
 import click
 
-from ...main import pass_ctx
+from ...main import _ClientContext, pass_ctx
 from ...utils import format_from_path, resolve_region, write_output
 
 
@@ -19,7 +19,7 @@ from ...utils import format_from_path, resolve_region, write_output
 @click.option('--format', 'fmt', type=click.Choice(['csv', 'json']), default=None)
 @pass_ctx
 def monitors_list(
-    ctx: object,
+    ctx: _ClientContext,
     county: str | None,
     city: str | None,
     zip_code: str | None,

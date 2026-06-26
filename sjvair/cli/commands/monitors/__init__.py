@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import click
 
-from .list import monitors_list
-from .get import monitors_get
-from .entries import monitors_entries
-from .summaries import monitors_summaries
-from .current import monitors_current
 from .closest import monitors_closest
+from .current import monitors_current
+from .entries import monitors_entries
+from .get import monitors_get
+from .list import monitors_list
+from .summaries import monitors_summaries
 
 
 @click.group('monitors')

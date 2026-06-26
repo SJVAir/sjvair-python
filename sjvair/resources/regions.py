@@ -17,7 +17,7 @@ class RegionsResource(BaseResource):
     def get(self, region_id: str) -> dict[str, Any]:
         return self._client.get(f'{self.PATH}{region_id}/')['data']
 
-    def search(self, query: str, **params: Any) -> list[dict[str, Any]]:
+    def search(self, query: str, **params: Any) -> list[dict[str, Any]]:  # ty: ignore[invalid-type-form]
         return self._client.get(
             f'{self.PATH}places/search/',
             {'q': query, **(params or {})},
@@ -33,7 +33,10 @@ class RegionsResource(BaseResource):
     ) -> Iterator[dict[str, Any]]:
         base = f'{self.PATH}{region_id}/summaries/'
         paths = _iter_summary_paths(
-            base, entry_type, resolution,
-            date.fromisoformat(start_date), date.fromisoformat(end_date),
+            base,
+            entry_type,
+            resolution,
+            date.fromisoformat(start_date),
+            date.fromisoformat(end_date),
         )
         return itertools.chain.from_iterable(self._paginate(p) for p in paths)

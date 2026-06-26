@@ -35,12 +35,14 @@ def cli(ctx: click.Context, base_url: str | None, api_key: str | None, timeout: 
     ctx.obj = _ClientContext(client=client, quiet=quiet, force=force)
 
 
-from .commands.monitors import monitors        # noqa: E402
-from .commands.regions import regions          # noqa: E402
-from .commands import calenviroscreen          # noqa: E402
-from .commands import ceidars                  # noqa: E402
-from .commands import hms                      # noqa: E402
-from .commands import pesticides               # noqa: E402
+from .commands import (  # noqa: E402
+    calenviroscreen,
+    ceidars,
+    hms,
+    pesticides,
+)
+from .commands.monitors import monitors  # noqa: E402
+from .commands.regions import regions  # noqa: E402
 
 cli.add_command(monitors)
 cli.add_command(regions)

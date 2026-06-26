@@ -38,10 +38,9 @@ def resolve_region(
         raise click.ClickException(f'No regions found matching {query!r}')
     if len(results) == 1:
         return results[0]['id']
-    lines = [f'  {r["id"]:36s}  {r.get("kind",""):<12}  {r["name"]}' for r in results]
+    lines = [f'  {r["id"]:36s}  {r.get("kind", ""):<12}  {r["name"]}' for r in results]
     raise click.ClickException(
-        f'Ambiguous region {query!r} — {len(results)} matches. Re-run with --region-id:\n'
-        + '\n'.join(lines)
+        f'Ambiguous region {query!r} — {len(results)} matches. Re-run with --region-id:\n' + '\n'.join(lines)
     )
 
 
@@ -66,6 +65,7 @@ def write_output(
     if fmt == 'csv':
         import csv as csv_mod
         import io
+
         headers, rows = format_output(data, 'tabular')
         rows = list(rows)
         if output is None:
