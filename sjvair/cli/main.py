@@ -23,7 +23,28 @@ class _ClientContext:
 pass_ctx = click.make_pass_decorator(_ClientContext)
 
 
-@click.group(context_settings=CONTEXT_SETTINGS)
+class _TreeGroup(click.Group):
+    """Click Group that lists subcommands recursively in --help."""
+
+    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        rows: list[tuple[str, str]] = []
+
+        def collect(group: click.Group, indent: int = 0) -> None:
+            for name in group.list_commands(ctx):
+                cmd = group.commands.get(name)
+                if cmd is None or getattr(cmd, 'hidden', False):
+                    continue
+                rows.append(('  ' * indent + name, cmd.get_short_help_str(limit=formatter.width)))
+                if isinstance(cmd, click.Group):
+                    collect(cmd, indent + 1)
+
+        collect(self)
+        if rows:
+            with formatter.section('Commands'):
+                formatter.write_dl(rows)
+
+
+@click.group(cls=_TreeGroup, context_settings=CONTEXT_SETTINGS)
 @click.version_option(version=__version__, prog_name='sjvair')
 @click.option('--base-url', envvar='SJVAIR_BASE_URL', default=None, help='Override API base URL.')
 @click.option('--api-key', envvar='SJVAIR_API_KEY', default=None, help='API key for authenticated requests.')
