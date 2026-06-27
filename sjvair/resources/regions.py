@@ -29,7 +29,7 @@ class RegionsResource(BaseResource):
         return self._client.get(
             f'{self.PATH}places/search/',
             {'q': query, **(params or {})},
-        )['data']
+        ).get('data') or []
 
     def summaries(
         self,
