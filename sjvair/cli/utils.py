@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Iterator
 
 import click
+import yaml
 
 from ..client import SJVAirClient
 from ..formatters import format_output
@@ -17,6 +18,8 @@ def format_from_path(output: Path | None, fmt: str | None) -> str:
         ext = output.suffix.lower().lstrip('.')
         if ext in ('csv', 'json'):
             return ext
+        if ext in ('yaml', 'yml'):
+            return 'yaml'
     return 'json'
 
 
@@ -54,6 +57,15 @@ def write_output(
 ) -> None:
     if output is not None and output.exists() and not force:
         raise click.ClickException(f'{output} already exists. Use --force to overwrite.')
+
+    if fmt == 'yaml':
+        records = list(format_output(data, 'objects'))
+        text = yaml.dump(records, allow_unicode=True, sort_keys=False, default_flow_style=False)
+        if output is None:
+            click.echo(text, nl=False)
+        else:
+            output.write_text(text, encoding='utf-8')
+        return
 
     if fmt == 'json':
         records = list(format_output(data, 'objects'))

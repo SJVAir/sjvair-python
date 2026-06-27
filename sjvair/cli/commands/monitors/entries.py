@@ -27,7 +27,7 @@ from ...utils import format_from_path, resolve_region
 @click.option('--workers', default=4, type=int)
 @click.option('--dry-run', is_flag=True, default=False)
 @click.option('--output', 'output_path', type=click.Path(path_type=Path), required=True)
-@click.option('--format', 'fmt', type=click.Choice(['csv', 'json']), default=None)
+@click.option('--format', 'fmt', type=click.Choice(['csv', 'json', 'yaml']), default=None)
 @pass_ctx
 def monitors_entries(
     ctx: _ClientContext,

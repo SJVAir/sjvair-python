@@ -18,7 +18,7 @@ def hms() -> None:
 @hms.command('smoke', context_settings=CONTEXT_SETTINGS)
 @click.option('--date', default=None, help='YYYY-MM-DD; defaults to today.')
 @click.option('--output', 'output_path', type=click.Path(path_type=Path), default=None)
-@click.option('--format', 'fmt', type=click.Choice(['csv', 'json']), default=None)
+@click.option('--format', 'fmt', type=click.Choice(['csv', 'json', 'yaml']), default=None)
 @pass_ctx
 def hms_smoke(ctx: _ClientContext, date: str | None, output_path: Path | None, fmt: str | None) -> None:
     """Download HMS smoke plume records."""
@@ -33,7 +33,7 @@ def hms_smoke(ctx: _ClientContext, date: str | None, output_path: Path | None, f
 @hms.command('fire', context_settings=CONTEXT_SETTINGS)
 @click.option('--date', default=None, help='YYYY-MM-DD; defaults to today.')
 @click.option('--output', 'output_path', type=click.Path(path_type=Path), default=None)
-@click.option('--format', 'fmt', type=click.Choice(['csv', 'json']), default=None)
+@click.option('--format', 'fmt', type=click.Choice(['csv', 'json', 'yaml']), default=None)
 @pass_ctx
 def hms_fire(ctx: _ClientContext, date: str | None, output_path: Path | None, fmt: str | None) -> None:
     """Download HMS fire point records."""

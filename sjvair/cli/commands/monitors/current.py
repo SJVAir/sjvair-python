@@ -11,7 +11,7 @@ from ...utils import format_from_path, write_output
 @click.command('current')
 @click.option('--type', 'entry_type', required=True)
 @click.option('--output', 'output_path', type=click.Path(path_type=Path), default=None)
-@click.option('--format', 'fmt', type=click.Choice(['csv', 'json']), default=None)
+@click.option('--format', 'fmt', type=click.Choice(['csv', 'json', 'yaml']), default=None)
 @pass_ctx
 def monitors_current(
     ctx: _ClientContext,

@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "sjvair"
 version = "0.1.0"
 requires-python = ">=3.10"
-dependencies = ["requests", "click", "python-dotenv"]
+dependencies = ["requests", "click", "python-dotenv", "pyyaml"]
 
 [project.scripts]
 sjvair = "sjvair.cli.main:cli"

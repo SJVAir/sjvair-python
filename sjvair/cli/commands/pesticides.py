@@ -19,7 +19,7 @@ TYPES = ['use', 'notice', 'chemicals', 'commodities', 'products', 'region-use', 
 @click.option('--tract', default=None)
 @click.option('--region-id', default=None)
 @click.option('--output', 'output_path', type=click.Path(path_type=Path), default=None)
-@click.option('--format', 'fmt', type=click.Choice(['csv', 'json']), default=None)
+@click.option('--format', 'fmt', type=click.Choice(['csv', 'json', 'yaml']), default=None)
 @pass_ctx
 def pesticides(
     ctx: _ClientContext,

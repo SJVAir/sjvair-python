@@ -15,7 +15,7 @@ from ..utils import format_from_path, resolve_region, write_output
 @click.option('--tract', default=None)
 @click.option('--region-id', default=None)
 @click.option('--output', 'output_path', type=click.Path(path_type=Path), default=None)
-@click.option('--format', 'fmt', type=click.Choice(['csv', 'json']), default=None)
+@click.option('--format', 'fmt', type=click.Choice(['csv', 'json', 'yaml']), default=None)
 @pass_ctx
 def ceidars(
     ctx: _ClientContext,
