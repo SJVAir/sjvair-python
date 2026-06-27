@@ -31,6 +31,27 @@ def chunk_date_range(start: date, end: date, period_months: int) -> list[tuple[d
 
 
 class ExportEngine:
+    """Bulk-export monitor entries across long date ranges using a thread pool.
+
+    Because the SJVAir export endpoint accepts at most 180 days per request,
+    this engine splits the requested range into ``period_months``-sized chunks
+    and downloads them concurrently. Each chunk is written to a deterministic
+    NDJSON staging file in the same directory as ``output``; on success all
+    staging files are merged into ``output`` and then deleted.
+
+    If some chunks fail, the engine raises :class:`RuntimeError` and retains
+    the staging files for the succeeded chunks so that a subsequent run can
+    resume from where it left off (already-present staging files are skipped).
+
+    Args:
+        client: An authenticated or anonymous :class:`~sjvair.client.SJVAirClient`.
+        output: Destination path. Extension determines format: ``.csv`` or ``.json``.
+        period_months: Chunk size in months (default 5, well under the 180-day limit).
+        max_workers: Maximum concurrent download threads.
+        scope: ``'resolved'`` (calibrated) or ``'expanded'`` (raw + derived fields).
+        dry_run: If ``True``, log the plan and return without downloading anything.
+    """
+
     def __init__(
         self,
         client: SJVAirClient,

@@ -7,10 +7,13 @@ if TYPE_CHECKING:
 
 
 class BaseResource:
+    """Base class for all SJVAir API resource objects."""
+
     def __init__(self, client: SJVAirClient) -> None:
         self._client = client
 
     def _paginate(self, path: str, params: dict[str, Any] | None = None) -> Iterator[dict[str, Any]]:
+        """Iterate all pages of a paginated endpoint, yielding each record."""
         page = 1
         while True:
             data = self._client.get(path, {**(params or {}), 'page': page})

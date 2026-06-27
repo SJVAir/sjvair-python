@@ -35,6 +35,25 @@ class CooldownGate:
 
 
 class SJVAirClient:
+    """HTTP client for the SJVAir API.
+
+    All resource objects (``monitors``, ``regions``, ``calenviroscreen``, ``ceidars``,
+    ``hms``, ``pesticides``) are attached as attributes and share this client's session,
+    retry logic, and cooldown gate.
+
+    Args:
+        base_url: API base URL. Defaults to ``SJVAIR_BASE_URL`` env var or the production URL.
+        timeout: Request timeout in seconds. Defaults to ``SJVAIR_TIMEOUT`` env var or 30.
+        max_retries: Number of retries on 5xx / 429 responses. Defaults to 5.
+        max_connections: Maximum concurrent requests (semaphore). Defaults to 4.
+        api_key: Bearer token for authenticated endpoints. Defaults to ``SJVAIR_API_KEY`` env var.
+
+    Can be used as a context manager to ensure the underlying session is closed::
+
+        with SJVAirClient() as client:
+            monitors = list(client.monitors.list())
+    """
+
     RETRYABLE = frozenset({500, 502, 503, 504})
 
     def __init__(
@@ -75,6 +94,14 @@ class SJVAirClient:
         return session
 
     def get(self, path: str, params: dict[str, Any] | None = None) -> Any:
+        """GET ``path`` relative to ``base_url``, with retry and cooldown.
+
+        Retries on 5xx up to ``max_retries`` times with exponential backoff.
+        On 429, triggers a shared cooldown that blocks all threads until the
+        wait expires. Raises :class:`~sjvair.exceptions.NotFound` on 404,
+        :class:`~sjvair.exceptions.RateLimited` after exhausting retries on 429,
+        and :class:`~sjvair.exceptions.ServerError` after exhausting retries on 5xx.
+        """
         url = self.base_url + path.lstrip('/')
         self._cooldown.wait()
         with self._semaphore:

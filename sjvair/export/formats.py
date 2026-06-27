@@ -7,6 +7,8 @@ from typing import IO, Iterator
 
 
 class NDJSONWriter:
+    """Write newline-delimited JSON to a staging file, one record per line."""
+
     def __init__(self, path: Path) -> None:
         self._path = path
         self._file: IO[str] | None = None
@@ -34,6 +36,11 @@ def _iter_ndjson(paths: list[Path]) -> Iterator[dict]:
 
 
 def rollup_csv(chunk_paths: list[Path], output: Path) -> None:
+    """Merge NDJSON staging files into a single CSV.
+
+    Uses a two-pass approach: first pass discovers all column names in order of
+    first appearance (handles monitors with different field sets); second pass writes.
+    """
     # Pass 1: discover all column names in order of first appearance
     all_keys: list[str] = []
     seen: set[str] = set()
@@ -51,6 +58,7 @@ def rollup_csv(chunk_paths: list[Path], output: Path) -> None:
 
 
 def rollup_json(chunk_paths: list[Path], output: Path) -> None:
+    """Merge NDJSON staging files into a single JSON array, streaming to avoid loading all records into memory."""
     with output.open('w', encoding='utf-8') as f:
         f.write('[')
         first = True

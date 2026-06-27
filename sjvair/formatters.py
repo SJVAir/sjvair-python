@@ -6,6 +6,18 @@ VALID_FORMATS = ('objects', 'tabular', 'dataframe', 'geodataframe')
 
 
 def format_output(data: Iterator[dict[str, Any]], fmt: str) -> Any:
+    """Convert an iterator of record dicts into the requested output format.
+
+    Args:
+        data: Iterator of record dicts as returned by any resource method.
+        fmt: One of:
+
+            - ``'objects'`` — returns the iterator as-is (no conversion)
+            - ``'tabular'`` — returns ``(headers: list[str], rows: Iterator[list])``
+            - ``'dataframe'`` — returns a ``pandas.DataFrame`` (requires ``sjvair[maps]``)
+            - ``'geodataframe'`` — returns a ``geopandas.GeoDataFrame`` with geometry parsed
+              from the ``geometry`` field (requires ``sjvair[maps]``)
+    """
     if fmt not in VALID_FORMATS:
         raise ValueError(f'Unknown format {fmt!r}. Valid: {VALID_FORMATS}')
 
