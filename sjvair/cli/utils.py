@@ -28,6 +28,8 @@ def resolve_region(
     tract: str | None = None,
     region_id: str | None = None,
 ) -> str | None:
+    if len([x for x in (county, city, zip_code, tract, region_id) if x]) > 1:
+        raise click.UsageError('Only one region filter may be specified at a time.')
     if region_id:
         return region_id
     query = county or city or zip_code or tract

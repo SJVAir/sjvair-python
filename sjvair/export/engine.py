@@ -91,6 +91,7 @@ class ExportEngine:
             return
 
         staging_files: list[Path] = []
+        failures: list[tuple[str, date, date]] = []
         with ThreadPoolExecutor(max_workers=self.max_workers) as pool:
             futures = {pool.submit(self._download_chunk, mid, cs, ce): (mid, cs, ce) for mid, cs, ce in jobs}
             for future in as_completed(futures):
@@ -99,6 +100,12 @@ class ExportEngine:
                     staging_files.append(future.result())
                 except Exception:
                     log.exception('Failed: monitor=%s %s→%s', mid, cs, ce)
+                    failures.append((mid, cs, ce))
+
+        if failures:
+            raise RuntimeError(
+                f'{len(failures)} of {len(jobs)} chunk(s) failed; staging files for succeeded chunks retained — re-run to resume.'
+            )
 
         suffix = self.output.suffix.lower()
         if suffix == '.csv':
