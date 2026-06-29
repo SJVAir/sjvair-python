@@ -48,7 +48,10 @@ def pesticides(
             return
     else:
         resource = getattr(ctx.client.pesticides, ptype)
-        data = resource.list()
+        list_params: dict[str, str] = {}
+        if region and ptype in ('use', 'notice'):
+            list_params['region_id'] = region
+        data = resource.list(**list_params)
 
     fmt = format_from_path(output_path, fmt)
     write_output(data, fmt, output_path, force=ctx.force)
