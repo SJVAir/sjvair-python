@@ -21,6 +21,7 @@ def hms() -> None:
 @click.option('--city', default=None, help='Filter by city name.')
 @click.option('--zip', 'zip_code', default=None, help='Filter by ZIP code.')
 @click.option('--tract', default=None, help='Filter by census tract FIPS code.')
+@click.option('--urban', default=None, help='Filter by urban area name.')
 @click.option('--region-id', default=None, help='Filter by region sqid.')
 @click.option('--output', 'output_path', type=click.Path(path_type=Path), default=None)
 @click.option('--format', 'fmt', type=click.Choice(['csv', 'json', 'yaml']), default=None)
@@ -32,6 +33,7 @@ def hms_smoke(
     city: str | None,
     zip_code: str | None,
     tract: str | None,
+    urban: str | None,
     region_id: str | None,
     output_path: Path | None,
     fmt: str | None,
@@ -40,7 +42,7 @@ def hms_smoke(
     params: dict[str, str] = {}
     if date:
         params['date'] = date
-    region = resolve_region(ctx.client, county, city, zip_code, tract, region_id)
+    region = resolve_region(ctx.client, county, city, zip_code, tract, region_id, urban)
     if region:
         params['region_id'] = region
     data = ctx.client.hms.smoke.list(**params)
@@ -54,6 +56,7 @@ def hms_smoke(
 @click.option('--city', default=None, help='Filter by city name.')
 @click.option('--zip', 'zip_code', default=None, help='Filter by ZIP code.')
 @click.option('--tract', default=None, help='Filter by census tract FIPS code.')
+@click.option('--urban', default=None, help='Filter by urban area name.')
 @click.option('--region-id', default=None, help='Filter by region sqid.')
 @click.option('--output', 'output_path', type=click.Path(path_type=Path), default=None)
 @click.option('--format', 'fmt', type=click.Choice(['csv', 'json', 'yaml']), default=None)
@@ -65,6 +68,7 @@ def hms_fire(
     city: str | None,
     zip_code: str | None,
     tract: str | None,
+    urban: str | None,
     region_id: str | None,
     output_path: Path | None,
     fmt: str | None,
@@ -73,7 +77,7 @@ def hms_fire(
     params: dict[str, str] = {}
     if date:
         params['date'] = date
-    region = resolve_region(ctx.client, county, city, zip_code, tract, region_id)
+    region = resolve_region(ctx.client, county, city, zip_code, tract, region_id, urban)
     if region:
         params['region_id'] = region
     data = ctx.client.hms.fire.list(**params)

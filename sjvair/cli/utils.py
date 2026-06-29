@@ -30,20 +30,30 @@ def resolve_region(
     zip_code: str | None = None,
     tract: str | None = None,
     region_id: str | None = None,
+    urban: str | None = None,
 ) -> str | None:
-    if len([x for x in (county, city, zip_code, tract, region_id) if x]) > 1:
+    if len([x for x in (county, city, zip_code, tract, region_id, urban) if x]) > 1:
         raise click.UsageError('Only one region filter may be specified at a time.')
     if region_id:
         return region_id
-    query = county or city or zip_code or tract
-    if query is None:
+    if county:
+        query, rtype = county, 'county'
+    elif city:
+        query, rtype = city, 'city'
+    elif zip_code:
+        query, rtype = zip_code, 'zipcode'
+    elif tract:
+        query, rtype = tract, 'tract'
+    elif urban:
+        query, rtype = urban, 'urban_area'
+    else:
         return None
-    results = client.regions.search(query)
+    results = client.regions.search(query, type=rtype)
     if not results:
         raise click.ClickException(f'No regions found matching {query!r}')
     if len(results) == 1:
         return results[0]['id']
-    lines = [f'  {r["id"]:36s}  {r.get("kind", ""):<12}  {r["name"]}' for r in results]
+    lines = [f'  {r["id"]:36s}  {r.get("type", ""):<12}  {r["name"]}' for r in results]
     raise click.ClickException(
         f'Ambiguous region {query!r} — {len(results)} matches. Re-run with --region-id:\n' + '\n'.join(lines)
     )

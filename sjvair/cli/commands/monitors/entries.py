@@ -20,6 +20,7 @@ from ...utils import format_from_path, resolve_region
 @click.option('--city', default=None)
 @click.option('--zip', 'zip_code', default=None)
 @click.option('--tract', default=None)
+@click.option('--urban', default=None)
 @click.option('--region-id', default=None)
 @click.option('--is-sjvair', is_flag=True, default=False)
 @click.option('--scope', type=click.Choice(['resolved', 'expanded']), default='resolved')
@@ -39,6 +40,7 @@ def monitors_entries(
     city: str | None,
     zip_code: str | None,
     tract: str | None,
+    urban: str | None,
     region_id: str | None,
     is_sjvair: bool,
     scope: str,
@@ -57,7 +59,7 @@ def monitors_entries(
     elif monitor_ids:
         ids = list(monitor_ids)
     else:
-        region = resolve_region(ctx.client, county, city, zip_code, tract, region_id)
+        region = resolve_region(ctx.client, county, city, zip_code, tract, region_id, urban)
         params: dict = {'region_id': region} if region else {}
         if is_sjvair:
             params['is_sjvair'] = True

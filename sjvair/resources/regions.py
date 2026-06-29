@@ -25,11 +25,21 @@ class RegionsResource(BaseResource):
         return self._client.get(f'{self.PATH}{region_id}/')['data']
 
     def search(self, query: str, **params: Any) -> list[dict[str, Any]]:  # ty: ignore[invalid-type-form]
-        """Search regions by name, ZIP code, or FIPS tract code."""
+        """Search regions by name, returning all high-confidence matches. Pass ``type=`` to scope to a specific region type."""
+        return (
+            self._client.get(
+                f'{self.PATH}places/search/',
+                {'q': query, **(params or {})},
+            ).get('data')
+            or []
+        )
+
+    def lookup(self, query: str, **params: Any) -> dict[str, Any] | None:
+        """Resolve a name to the single best-match region. Pass ``type=`` to scope to a specific region type."""
         return self._client.get(
-            f'{self.PATH}places/search/',
+            f'{self.PATH}places/lookup/',
             {'q': query, **(params or {})},
-        ).get('data') or []
+        ).get('data')
 
     def summaries(
         self,
