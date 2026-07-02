@@ -41,3 +41,14 @@ def test_dataframe_missing_deps_raises_import_error():
     except ImportError:
         with pytest.raises(ImportError, match="sjvair\\[maps\\]"):
             format_output(iter(SAMPLE), "dataframe")
+
+
+def test_geodataframe_missing_deps_raises_import_error():
+    try:
+        import pandas  # noqa: F401
+        import pyarrow  # noqa: F401
+
+        pytest.skip("maps extras installed; skip missing-dep test")
+    except ImportError:
+        with pytest.raises(ImportError, match="sjvair\\[maps\\]"):
+            format_output(iter(SAMPLE), "geodataframe")
