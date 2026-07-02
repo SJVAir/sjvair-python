@@ -15,7 +15,18 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-def chunk_date_range(start: date, end: date, period_months: int) -> list[tuple[date, date]]:
+# The export endpoint rejects any single request spanning more than this many
+# days (server-side MAX_EXPORT_RANGE). period_months of 5 stays comfortably
+# under it; 6+ can produce a 181-day chunk depending on month alignment.
+MAX_EXPORT_DAYS = 180
+
+
+def chunk_date_range(
+    start: date,
+    end: date,
+    period_months: int,
+    max_days: int | None = MAX_EXPORT_DAYS,
+) -> list[tuple[date, date]]:
     chunks: list[tuple[date, date]] = []
     chunk_start = start
     while chunk_start <= end:
@@ -25,6 +36,12 @@ def chunk_date_range(start: date, end: date, period_months: int) -> list[tuple[d
         em = (total - 1) % 12 + 1
         last_day = calendar.monthrange(ey, em)[1]
         chunk_end = min(date(ey, em, last_day), end)
+        if max_days is not None and (chunk_end - chunk_start).days + 1 > max_days:
+            raise ValueError(
+                f'--period-months {period_months} produces a '
+                f'{(chunk_end - chunk_start).days + 1}-day chunk, exceeding the '
+                f'{max_days}-day export limit. Use a smaller --period-months.'
+            )
         chunks.append((chunk_start, chunk_end))
         chunk_start = chunk_end + timedelta(days=1)
     return chunks

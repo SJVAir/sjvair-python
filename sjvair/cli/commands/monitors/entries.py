@@ -8,13 +8,13 @@ import click
 
 from ....export.engine import ExportEngine, chunk_date_range
 from ...main import _ClientContext, pass_ctx
-from ...utils import format_from_path, resolve_region
+from ...utils import format_from_path, resolve_region, split_ids
 
 
 @click.command('entries')
 @click.option('--start-date', required=True)
 @click.option('--end-date', required=True)
-@click.option('--monitor-id', 'monitor_ids', multiple=True)
+@click.option('--monitor-id', 'monitor_ids', multiple=True, callback=split_ids)
 @click.option('--from-csv', 'from_csv', type=click.Path(exists=True, path_type=Path), default=None)
 @click.option('--county', default=None)
 @click.option('--city', default=None)
@@ -70,12 +70,18 @@ def monitors_entries(
     if output_path.suffix.lower() != ext:
         output_path = output_path.with_suffix(ext)
 
-    if dry_run:
+    # Validate chunking up front so an over-limit --period-months fails cleanly
+    # before any downloading (the engine re-derives the same chunks internally).
+    try:
         chunks = chunk_date_range(
             date.fromisoformat(start_date),
             date.fromisoformat(end_date),
             period_months,
         )
+    except ValueError as exc:
+        raise click.ClickException(str(exc))
+
+    if dry_run:
         click.echo(f'Monitors: {len(ids)}')
         click.echo(f'Date chunks: {len(chunks)}')
         click.echo(f'Total requests: {len(ids) * len(chunks)}')

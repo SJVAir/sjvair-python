@@ -6,7 +6,7 @@ from pathlib import Path
 import click
 
 from ...main import _ClientContext, pass_ctx
-from ...utils import format_from_path, resolve_region, write_output
+from ...utils import format_from_path, resolve_region, split_ids, write_output
 
 
 @click.command('summaries')
@@ -18,7 +18,7 @@ from ...utils import format_from_path, resolve_region, write_output
 )
 @click.option('--start-date', required=True)
 @click.option('--end-date', required=True)
-@click.option('--monitor-id', 'monitor_ids', multiple=True)
+@click.option('--monitor-id', 'monitor_ids', multiple=True, callback=split_ids)
 @click.option('--county', default=None)
 @click.option('--city', default=None)
 @click.option('--zip', 'zip_code', default=None)

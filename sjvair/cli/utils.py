@@ -11,6 +11,18 @@ from ..client import SJVAirClient
 from ..formatters import format_output
 
 
+def split_ids(ctx: Any, param: Any, value: tuple[str, ...]) -> tuple[str, ...]:
+    """Flatten comma-separated ``--monitor-id`` values.
+
+    Accepts both repeated flags (``--monitor-id A --monitor-id B``) and
+    comma-separated lists (``--monitor-id A,B``), or any mix of the two.
+    """
+    ids: list[str] = []
+    for item in value:
+        ids.extend(part.strip() for part in item.split(',') if part.strip())
+    return tuple(ids)
+
+
 def format_from_path(output: Path | None, fmt: str | None) -> str:
     if fmt:
         return fmt

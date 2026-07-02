@@ -37,3 +37,12 @@ def test_format_flag_overrides_extension():
 def test_format_defaults_to_json_when_no_output():
     from sjvair.cli.utils import format_from_path
     assert format_from_path(None, None) == 'json'
+
+
+def test_split_ids_flattens_comma_and_repeat():
+    from sjvair.cli.utils import split_ids
+
+    assert split_ids(None, None, ('a', 'b')) == ('a', 'b')
+    assert split_ids(None, None, ('a,b',)) == ('a', 'b')
+    assert split_ids(None, None, ('a, b', 'c')) == ('a', 'b', 'c')
+    assert split_ids(None, None, ()) == ()
