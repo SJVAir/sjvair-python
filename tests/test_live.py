@@ -114,14 +114,23 @@ def test_regions_search_empty_is_not_an_error(client):
 
 # ---------------------------------------------------------------------------
 # CalEnviroScreen
-# — API returns empty data for all years currently; test that it responds cleanly.
+# — CES 4.0 scores are keyed to census year 2020.
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.live
-def test_calenviroscreen_list_responds(client):
-    tracts = list(client.calenviroscreen.list(year=2021))
-    assert isinstance(tracts, list)
+def test_calenviroscreen_list_returns_tracts(client):
+    tracts = list(client.calenviroscreen.list(year=2020))
+    assert tracts, 'expected CES 4.0 tracts for 2020'
+    assert 'tract' in tracts[0]
+    assert 'ci_score' in tracts[0]
+
+
+@pytest.mark.live
+def test_calenviroscreen_get_single_tract(client):
+    tract = client.calenviroscreen.get(year=2020, tract='06019000100')
+    assert tract['tract'] == '06019000100'
+    assert 'ci_score' in tract
 
 
 # ---------------------------------------------------------------------------

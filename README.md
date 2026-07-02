@@ -150,11 +150,11 @@ sjvair regions summaries \
 
 ### calenviroscreen
 
-CalEnviroScreen 4.0 cumulative-impact scores by census tract for a given `--year`.
+CalEnviroScreen 4.0 cumulative-impact scores by census tract for a given `--year` (the census year the scores are keyed to — currently 2020).
 
 ```bash
-sjvair calenviroscreen --year 2021
-sjvair calenviroscreen --year 2021 --county Fresno --output ces-fresno.csv
+sjvair calenviroscreen --year 2020
+sjvair calenviroscreen --year 2020 --county Fresno --output ces-fresno.csv
 ```
 
 ### ceidars
@@ -251,8 +251,8 @@ with SJVAirClient() as client:
 CalEnviroScreen 4.0 cumulative impact scores by census tract.
 
 ```python
-tracts = list(client.calenviroscreen.list(year=2021))
-tract = client.calenviroscreen.get(year=2021, tract='06019000100')
+tracts = list(client.calenviroscreen.list(year=2020))
+tract = client.calenviroscreen.get(year=2020, tract='06019000100')
 ```
 
 ### CEIDARS — `client.ceidars`
