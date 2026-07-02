@@ -108,7 +108,10 @@ class MonitorsResource(BaseResource):
             date.fromisoformat(start_date),
             date.fromisoformat(end_date),
         )
-        return itertools.chain.from_iterable(self._paginate(p) for p in paths)
+        rows = itertools.chain.from_iterable(self._paginate(p) for p in paths)
+        # The API's summary rows don't identify their monitor; tag each row so
+        # callers fanning out across monitors can attribute results.
+        return ({'monitor_id': monitor_id, **row} for row in rows)
 
     def closest(self, entry_type: str, lat: float, lon: float) -> list[dict[str, Any]]:  # ty: ignore[invalid-type-form]
         """Return up to 3 nearest active monitors with distance and latest entry."""

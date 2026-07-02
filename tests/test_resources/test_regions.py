@@ -57,3 +57,5 @@ def test_regions_summaries_fans_out_by_month():
     rsps.add(rsps.GET, BASE + 'regions/r1/summaries/pm25/hourly/2025/1/', json={'data': [{'mean': 7.0}], 'has_next_page': False})
     result = list(SJVAirClient().regions.summaries('r1', 'pm25', 'hourly', '2025-01-01', '2025-01-31'))
     assert len(result) == 1
+    assert result[0]['region_id'] == 'r1'
+    assert result[0]['mean'] == 7.0

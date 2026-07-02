@@ -68,6 +68,9 @@ def test_monitors_summaries_hourly_fans_out_by_month():
     })
     result = list(SJVAirClient().monitors.summaries('abc', 'pm25', 'hourly', '2025-01-01', '2025-02-28'))
     assert len(result) == 2
+    # Each row is tagged with its monitor so fanned-out results stay attributable.
+    assert all(row['monitor_id'] == 'abc' for row in result)
+    assert result[0]['mean'] == 5.0
 
 
 @rsps.activate

@@ -58,4 +58,7 @@ class RegionsResource(BaseResource):
             date.fromisoformat(start_date),
             date.fromisoformat(end_date),
         )
-        return itertools.chain.from_iterable(self._paginate(p) for p in paths)
+        rows = itertools.chain.from_iterable(self._paginate(p) for p in paths)
+        # The API's summary rows don't identify their region; tag each row so
+        # callers can attribute results.
+        return ({'region_id': region_id, **row} for row in rows)
