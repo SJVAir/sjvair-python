@@ -1,0 +1,84 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sjvair"]
+
+[tool.hatch.build.targets.sdist]
+# Whitelist what ships in the sdist so local scratch (scripts/, data files)
+# can never be swept into a release.
+include = ["sjvair", "README.md", "LICENSE", "CHANGELOG.md", "pyproject.toml"]
+
+[project]
+name = "sjvair"
+version = "0.1.0a1"
+description = "Command-line tool and Python client for the SJVAir air quality API."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Central California Asthma Collaborative" }]
+maintainers = [{ name = "Derek Payton", email = "derek.payton@centralcalasthma.org" }]
+keywords = [
+    "sjvair",
+    "air-quality",
+    "pm2.5",
+    "ozone",
+    "environment",
+    "purpleair",
+    "airnow",
+    "airgradient",
+    "aqview",
+    "california",
+    "san-joaquin-valley",
+    "api-client",
+    "cli",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Topic :: Utilities",
+]
+dependencies = ["requests", "click", "python-dotenv", "pyyaml"]
+
+[project.urls]
+Homepage = "https://www.sjvair.com/"
+Repository = "https://github.com/SJVAir/sjvair-python"
+Issues = "https://github.com/SJVAir/sjvair-python/issues"
+
+[project.scripts]
+sjvair = "sjvair.cli.main:cli"
+
+[project.optional-dependencies]
+maps = ["matplotlib", "contextily", "geopandas", "shapely", "folium", "pyarrow"]
+
+[dependency-groups]
+dev = ["ruff", "ty", "pytest", "pytest-cov", "pytest-vcr", "responses"]
+
+[tool.pytest.ini_options]
+addopts = "--cov=sjvair --cov-report=term-missing"
+markers = ["live: requires live network (excluded from CI)"]
+
+[tool.coverage.run]
+source = ["sjvair"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 130
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.ruff.format]
+quote-style = "single"
