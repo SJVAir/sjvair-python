@@ -12,7 +12,7 @@ include = ["sjvair", "README.md", "LICENSE", "CHANGELOG.md", "pyproject.toml"]
 
 [project]
 name = "sjvair"
-version = "0.1.0"
+version = "0.1.0a1"
 description = "Command-line tool and Python client for the SJVAir air quality API."
 readme = "README.md"
 requires-python = ">=3.10"
