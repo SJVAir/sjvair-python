@@ -60,3 +60,4 @@ nav:
   - Python client:
       - Guide: client/guide.md
       - API reference: client/reference.md
+  - Changelog: changelog.md
