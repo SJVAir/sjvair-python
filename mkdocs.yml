@@ -54,3 +54,5 @@ exclude_docs: |
 
 nav:
   - Home: index.md
+  - CLI:
+      - Reference: cli/reference.md
