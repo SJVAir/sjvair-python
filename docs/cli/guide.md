@@ -1,25 +1,6 @@
 # CLI guide
 
-```
-sjvair [OPTIONS] COMMAND [ARGS]...
-
-Options:
-  --version          Show the version and exit.
-  --base-url TEXT    Override API base URL (or SJVAIR_BASE_URL).
-  --api-key TEXT     API key for authenticated requests (or SJVAIR_API_KEY).
-  --timeout INTEGER  Request timeout in seconds (or SJVAIR_TIMEOUT).
-  --quiet            Suppress informational output.
-  --force            Overwrite existing output files.
-  -h, --help         Show this message and exit.
-
-Commands:
-  monitors         Monitor data (list, get, entries, summaries, current, closest)
-  regions          Region data (list, get, summaries)
-  calenviroscreen  CalEnviroScreen 4.0 census tract scores
-  ceidars          CEIDARS facility emissions data
-  hms              NOAA Hazard Mapping System smoke and fire data
-  pesticides       Pesticide use, notice, and chemical data
-```
+Worked examples for every `sjvair` command. For the full command tree and every global option, see the [CLI reference](reference.md).
 
 ## Common conventions
 

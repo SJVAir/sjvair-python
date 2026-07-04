@@ -10,7 +10,6 @@ theme:
     - navigation.sections
     - navigation.top
     - content.code.copy
-    - content.code.annotate
     - search.suggest
   palette:
     - scheme: default
