@@ -1,4 +1,4 @@
-site_name: SJVAir
+site_name: SJVAir Toolkit
 site_description: Command-line tool and Python client for the SJVAir air quality API.
 site_url: https://SJVAir.github.io/sjvair-python/
 repo_url: https://github.com/SJVAir/sjvair-python
@@ -10,7 +10,7 @@ dev_addr: localhost:8080
 theme:
   name: material
   custom_dir: overrides
-  logo: assets/logo.png
+  logo: assets/logo.svg
   favicon: assets/favicon/favicon.ico
   features:
     - navigation.sections
