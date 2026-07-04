@@ -1,0 +1,18 @@
+/* SJVAir brand colors, sampled from sjvair-logo.svg */
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color:        #276eaf;
+  --md-primary-fg-color--light: #3a82c2;
+  --md-primary-fg-color--dark:  #1e5a92;
+  --md-accent-fg-color:         #1fb9ef;
+  /* Navy links so they stay readable on the white background */
+  --md-typeset-a-color:         #1c4482;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color:        #276eaf;
+  --md-primary-fg-color--light: #3a82c2;
+  --md-primary-fg-color--dark:  #1e5a92;
+  --md-accent-fg-color:         #1fb9ef;
+  /* Sky-blue links so they stay readable on the dark background */
+  --md-typeset-a-color:         #1fb9ef;
+}
