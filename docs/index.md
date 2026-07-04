@@ -1,4 +1,4 @@
-# sjvair
+# SJVAir Toolkit
 
 Command-line tool and Python client for [SJVAir](https://www.sjvair.com/) — a network of air
 quality monitors across California's San Joaquin Valley.
@@ -16,7 +16,7 @@ from sjvair import SJVAirClient
 
 with SJVAirClient() as client:
     for monitor in client.monitors.list():
-        print(monitor['id'], monitor['name'])
+        print(f"{monitor['id']}: {monitor['name']}")
 ```
 
 ```bash
