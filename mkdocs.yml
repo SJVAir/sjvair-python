@@ -4,6 +4,9 @@ site_url: https://SJVAir.github.io/sjvair-python/
 repo_url: https://github.com/SJVAir/sjvair-python
 repo_name: SJVAir/sjvair-python
 
+# Docs dev server on :8080 to avoid colliding with the app's :8000 dev server.
+dev_addr: localhost:8080
+
 theme:
   name: material
   features:
