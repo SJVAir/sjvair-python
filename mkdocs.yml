@@ -55,6 +55,7 @@ exclude_docs: |
 nav:
   - Home: index.md
   - CLI:
+      - Guide: cli/guide.md
       - Reference: cli/reference.md
   - Python client:
       - API reference: client/reference.md
