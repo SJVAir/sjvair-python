@@ -56,3 +56,5 @@ nav:
   - Home: index.md
   - CLI:
       - Reference: cli/reference.md
+  - Python client:
+      - API reference: client/reference.md
