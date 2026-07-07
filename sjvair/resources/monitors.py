@@ -125,7 +125,7 @@ class MonitorsResource(BaseResource):
         self,
         entry_type: str,
         timestamp: str,
-        region: list[str] | None = None,
+        region: list[str] | None = None,  # ty: ignore[invalid-type-form]
         bbox: tuple[float, float, float, float] | None = None,
     ) -> Iterator[dict[str, Any]]:
         """As :meth:`current`, but as-of a historical ``timestamp`` (ISO 8601).
