@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import re
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -9,6 +11,31 @@ import yaml
 
 from ..client import SJVAirClient
 from ..formatters import format_output
+
+
+_DURATION_RE = re.compile(r'^(\d+)(s|m|h|d)$')
+_DURATION_UNITS = {'s': 'seconds', 'm': 'minutes', 'h': 'hours', 'd': 'days'}
+
+
+def parse_duration(value: str) -> timedelta:
+    """Parse a duration string like ``'5m'`` or ``'1h'`` into a ``timedelta``."""
+    match = _DURATION_RE.match(value.strip())
+    if not match:
+        raise click.UsageError(f'Invalid duration {value!r}. Use a number followed by s/m/h/d, e.g. "5m" or "1h".')
+    amount, unit = match.groups()
+    return timedelta(**{_DURATION_UNITS[unit]: int(amount)})
+
+
+def parse_bbox(value: str) -> tuple[float, float, float, float]:
+    """Parse ``'west,south,east,north'`` into a 4-tuple of floats."""
+    parts = value.split(',')
+    if len(parts) != 4:
+        raise click.UsageError(f'--bbox must be "west,south,east,north", got {value!r}.')
+    try:
+        west, south, east, north = (float(p) for p in parts)
+    except ValueError:
+        raise click.UsageError(f'--bbox values must be numbers, got {value!r}.')
+    return (west, south, east, north)
 
 
 def split_ids(ctx: Any, param: Any, value: tuple[str, ...]) -> tuple[str, ...]:
