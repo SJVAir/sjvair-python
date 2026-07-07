@@ -12,7 +12,6 @@ import yaml
 from ..client import SJVAirClient
 from ..formatters import format_output
 
-
 _DURATION_RE = re.compile(r'^(\d+)(s|m|h|d)$')
 _DURATION_UNITS = {'s': 'seconds', 'm': 'minutes', 'h': 'hours', 'd': 'days'}
 
