@@ -5,23 +5,24 @@ Importing this module never requires the ``maps`` extra — only calling
 :func:`render_frame` does, so callers can defer that cost (and the import error,
 if the extra isn't installed) until a map is actually being rendered.
 """
+
 from __future__ import annotations
 
-from io import BytesIO
 from typing import Any
 
 
 def _blend_hex(hex1: str, hex2: str, ratio: float) -> str:
     def to_rgb(h: str) -> tuple[int, int, int]:
         h = h.lstrip('#')
-        return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))  # type: ignore[return-value]
+        r, g, b = (int(h[i : i + 2], 16) for i in (0, 2, 4))
+        return r, g, b
 
     def to_hex(rgb: tuple[int, int, int]) -> str:
         return '#{:02x}{:02x}{:02x}'.format(*rgb)
 
     rgb1, rgb2 = to_rgb(hex1), to_rgb(hex2)
-    blended = tuple(int(round(a + (b - a) * ratio)) for a, b in zip(rgb1, rgb2))
-    return to_hex(blended)  # type: ignore[arg-type]
+    r, g, b = (int(round(a + (b - a) * ratio)) for a, b in zip(rgb1, rgb2))
+    return to_hex((r, g, b))
 
 
 def color_for_value(levels: dict[str, Any], value: float) -> str:

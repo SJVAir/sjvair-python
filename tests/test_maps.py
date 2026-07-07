@@ -16,11 +16,10 @@ def test_color_for_value_at_exact_level_start():
 
 
 def test_color_for_value_blends_between_levels():
-    # Halfway between GOOD (0) and MODERATE (12) should blend the two colors.
-    color = color_for_value(LEVELS, 6)
-    assert color != '#00e400'
-    assert color != '#ffff00'
-    assert color.startswith('#') and len(color) == 7
+    # Halfway between GOOD (#00e400) and MODERATE (#ffff00): each channel is
+    # round(a + (b - a) * 0.5), i.e. (0x00, 0xe4, 0x00) -> (0xff, 0xff, 0x00)
+    # blended at ratio=0.5 gives (128, 242, 0) = #80f200.
+    assert color_for_value(LEVELS, 6) == '#80f200'
 
 
 def test_color_for_value_above_highest_range_uses_top_color():
