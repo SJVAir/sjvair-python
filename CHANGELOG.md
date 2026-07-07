@@ -17,11 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CLI** (`sjvair`) — download-focused command-line tool:
   - `monitors`: `list`, `get`, `entries`, `summaries`, `current`, `closest`
   - `regions`: `list`, `get`, `summaries`
+  - `map create` / `timelapse create` — render static map images and timelapse
+    videos, live or as of a historical timestamp, scoped by region/bbox/buffer.
+    Requires the optional `sjvair[maps]` extra (and `ffmpeg` for timelapses).
   - `calenviroscreen`, `ceidars`, `hms` (`smoke`/`fire`), `pesticides`
   - Shared region filters (`--county`, `--city`, `--zip`, `--tract`, `--urban`,
     `--region-id`); comma-separated or repeated `--monitor-id`
   - Output as CSV, JSON, or YAML (inferred from the output extension or `--format`)
   - Global `--api-key`, `--base-url`, `--timeout`, `--quiet`, `--force`
+- **`MonitorsResource.current_at()`** — like `current()`, but as of a historical
+  timestamp; backs `map create`/`timelapse create` and is usable directly.
+- **`sjvair.maps`** — standalone map-rendering module (`render_frame`,
+  `color_for_value`, `shape_for_monitor`), importable without the optional
+  dependencies; only rendering itself requires `sjvair[maps]`.
 - **Bulk export** (`ExportEngine`, `sjvair monitors entries`) — chunked, concurrent
   downloads that stay within the server's 180-day export limit, with NDJSON staging
   that resumes interrupted runs and rolls up into a single CSV or JSON file.

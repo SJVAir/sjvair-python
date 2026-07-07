@@ -117,6 +117,50 @@ sjvair regions summaries \
   --county Fresno --output fresno-monthly.csv
 ```
 
+## map
+
+**`map create`** — render a single static map image, live or as of a historical timestamp. Requires `pip install sjvair[maps]` (matplotlib, contextily, geopandas, shapely).
+
+Pick an area with `--region` (repeatable — ID or name) and/or `--bbox "west,south,east,north"`. `--scope region` (default) queries only monitors covered by the region polygon(s); `--scope viewport` queries everything visible in the viewport instead. `--buffer` pads the viewport around `--region` without changing what gets queried (unless `--scope viewport`).
+
+```bash
+# Live snapshot of Fresno County right now
+sjvair map create --type pm25 --region Fresno --output fresno-now.png
+
+# Same, but as of a specific moment last July 4th
+sjvair map create --type pm25 --region Fresno \
+  --timestamp 2026-07-04T21:00:00 --output fresno-2026-07-04.png
+
+# Manual bounding box, everything in view (not just inside a region)
+sjvair map create --type pm25 --bbox "-120.2,36.4,-119.5,37.0" \
+  --scope viewport --output custom-area.png
+
+# Pull in monitors just outside the county line too
+sjvair map create --type pm25 --region Fresno --buffer 0.1 \
+  --scope viewport --output fresno-wide.png
+```
+
+Other options: `--legend/--no-legend`, `--timestamp-label/--no-timestamp-label` (both default on), `--width`/`--height` (pixels, default 1600×1200).
+
+## timelapse
+
+**`timelapse create`** — render a sequence of historical map frames across a time range and assemble them into an MP4 via `ffmpeg` (must be installed and on `PATH`). Requires `pip install sjvair[maps]`. Shares the same `--region`/`--buffer`/`--bbox`/`--scope` area options as `map create`.
+
+```bash
+# One frame every 5 minutes across the evening of the 4th
+sjvair timelapse create --type pm25 --region Fresno \
+  --start 2026-07-04T20:00:00 --end 2026-07-05T02:00:00 --interval 5m \
+  --output fresno-fireworks.mp4
+```
+
+Frames are written as numbered PNGs to `--frames-dir` (defaults to `<output>.frames/`) and encoded at `--fps` (default 24). Re-running the same command skips any frame already on disk — an interrupted run picks up where it left off without re-fetching data:
+
+```bash
+sjvair timelapse create --type pm25 --region Fresno \
+  --start 2026-07-04T20:00:00 --end 2026-07-05T02:00:00 --interval 5m \
+  --frames-dir frames/fresno-2026-07-04 --output fresno-fireworks.mp4
+```
+
 ## calenviroscreen
 
 CalEnviroScreen 4.0 cumulative-impact scores by census tract for a given `--year` (the census year the scores are keyed to — currently 2020).
