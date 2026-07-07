@@ -38,3 +38,58 @@ def test_color_for_value_above_highest_range_uses_top_color():
 )
 def test_shape_for_monitor(monitor, expected):
     assert shape_for_monitor(monitor) == expected
+
+
+def test_render_frame_requires_maps_extra_with_clear_error(monkeypatch):
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name in ('contextily', 'geopandas', 'matplotlib', 'shapely'):
+            raise ImportError(f'No module named {name!r}')
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, '__import__', fake_import)
+
+    from sjvair.maps import render_frame
+
+    with pytest.raises(ImportError, match='sjvair\\[maps\\]'):
+        render_frame(monitors=[], levels=LEVELS, outlines=[], viewport=(-120, 36, -119, 37))
+
+
+@pytest.mark.live
+def test_render_frame_produces_png_bytes():
+    pytest.importorskip('matplotlib')
+    pytest.importorskip('contextily')
+    pytest.importorskip('geopandas')
+    pytest.importorskip('shapely')
+
+    from sjvair.maps import render_frame
+
+    monitors = [
+        {
+            'id': 'm1',
+            'type': 'PurpleAir',
+            'is_sjvair': True,
+            'position': {'type': 'Point', 'coordinates': [-119.5, 36.5]},
+            'latest': {'value': 10.0},
+        }
+    ]
+    outline = {
+        'type': 'MultiPolygon',
+        'coordinates': [[[[-120.0, 36.0], [-119.0, 36.0], [-119.0, 37.0], [-120.0, 37.0], [-120.0, 36.0]]]],
+    }
+
+    png_bytes = render_frame(
+        monitors=monitors,
+        levels=LEVELS,
+        outlines=[outline],
+        viewport=(-120.0, 36.0, -119.0, 37.0),
+        timestamp_label='2026-07-04T21:00:00',
+        show_legend=True,
+        width=400,
+        height=300,
+    )
+
+    assert png_bytes[:8] == b'\x89PNG\r\n\x1a\n'  # PNG magic bytes
