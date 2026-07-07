@@ -120,3 +120,26 @@ class MonitorsResource(BaseResource):
     def current(self, entry_type: str) -> Iterator[dict[str, Any]]:
         """Iterate all active monitors with their most recent entry for the given type."""
         return self._paginate(f'monitors/{entry_type}/current/')
+
+    def current_at(
+        self,
+        entry_type: str,
+        timestamp: str,
+        region: list[str] | None = None,
+        bbox: tuple[float, float, float, float] | None = None,
+    ) -> Iterator[dict[str, Any]]:
+        """As :meth:`current`, but as-of a historical ``timestamp`` (ISO 8601).
+
+        Args:
+            entry_type: Sensor field (e.g. ``'pm25'``).
+            timestamp: ISO 8601 timestamp to query as-of.
+            region: One or more region IDs to filter to monitors covered by their
+                boundaries.
+            bbox: ``(west, south, east, north)`` to filter to monitors within the box.
+        """
+        params: dict[str, Any] = {'timestamp': timestamp}
+        if region:
+            params['region'] = list(region)
+        if bbox:
+            params['bbox'] = ','.join(str(v) for v in bbox)
+        return self._paginate(f'{self.PATH}{entry_type}/at/', params)
