@@ -68,10 +68,12 @@ from .commands import (  # noqa: E402
 from .commands.map import map_group  # noqa: E402
 from .commands.monitors import monitors  # noqa: E402
 from .commands.regions import regions  # noqa: E402
+from .commands.timelapse import timelapse_group  # noqa: E402
 
 cli.add_command(monitors)
 cli.add_command(regions)
 cli.add_command(map_group)
+cli.add_command(timelapse_group)
 cli.add_command(calenviroscreen.calenviroscreen)
 cli.add_command(ceidars.ceidars)
 cli.add_command(hms.hms)
