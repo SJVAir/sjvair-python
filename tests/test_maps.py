@@ -26,12 +26,15 @@ def test_color_for_value_above_highest_range_uses_top_color():
     assert color_for_value(LEVELS, 1000) == '#ff0000'
 
 
-@pytest.mark.parametrize('monitor,expected', [
-    ({'type': 'AirNow', 'is_sjvair': False}, '^'),
-    ({'type': 'BAM', 'is_sjvair': False}, '^'),
-    ({'type': 'PurpleAir', 'is_sjvair': True}, 'o'),
-    ({'type': 'PurpleAir', 'is_sjvair': False}, 's'),
-    ({'type': 'AirGradient', 'is_sjvair': False}, 's'),
-])
+@pytest.mark.parametrize(
+    'monitor,expected',
+    [
+        ({'type': 'AirNow', 'is_sjvair': False}, '^'),
+        ({'type': 'BAM', 'is_sjvair': False}, '^'),
+        ({'type': 'PurpleAir', 'is_sjvair': True}, 'o'),
+        ({'type': 'PurpleAir', 'is_sjvair': False}, 's'),
+        ({'type': 'AirGradient', 'is_sjvair': False}, 's'),
+    ],
+)
 def test_shape_for_monitor(monitor, expected):
     assert shape_for_monitor(monitor) == expected
