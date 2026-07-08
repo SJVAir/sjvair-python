@@ -83,15 +83,16 @@ class DropdownHttpdomainRenderer(HttpdomainRenderer):
     def render_operation(self, endpoint, method, operation):
         """Render one operation with Parameters/Request body/Response as tabs.
 
-        Reuses the parent class's render_parameters/render_request_body/
-        render_responses unchanged -- only the top-level assembly (flat
-        sequence vs. tabs) differs from HttpdomainRenderer.render_operation.
+        Sphinx's field-list-merging transform (the thing that turns
+        `:queryparam x:` + `:queryparamtype x:` into a readable "x (type)"
+        entry) only processes field lists that are *immediate* children of
+        an `.. http:get::` directive's own content -- by explicit design,
+        it does not traverse into nested containers like a `tab-item`. So
+        each tab gets its own `.. http:get::` block (making its field list
+        a direct child again); all but the first are `:noindex:` so the
+        endpoint is only registered once in the search index / routing
+        table / cross-reference targets.
         """
-        yield f'.. http:{method}:: {endpoint}'
-        if operation.get('deprecated'):
-            yield '   :deprecated:'
-        yield ''
-
         body = []
 
         if operation.get('summary'):
@@ -119,16 +120,25 @@ class DropdownHttpdomainRenderer(HttpdomainRenderer):
         if response_lines:
             tabs.append(('Response', response_lines))
 
+        def http_block(lines, noindex):
+            block = [f'.. http:{method}:: {endpoint}']
+            if noindex:
+                block.append('   :noindex:')
+            if operation.get('deprecated'):
+                block.append('   :deprecated:')
+            block.append('')
+            block.extend(indented(lines))
+            return block
+
         if tabs:
             body.append('.. tab-set::')
             body.append('')
-            for title, lines in tabs:
+            for index, (title, lines) in enumerate(tabs):
                 body.append(f'   .. tab-item:: {title}')
                 body.append('')
-                # Doubly-indented: once to nest under `.. tab-set::`
-                # (matching the tab-item line itself), once more to nest
-                # under the `.. tab-item::` directive it belongs to.
-                body.extend(indented(indented(lines)))
+                body.extend(indented(indented(http_block(lines, noindex=index != 0))))
                 body.append('')
+        else:
+            body.extend(http_block([], noindex=False))
 
-        yield from indented(body)
+        yield from body
