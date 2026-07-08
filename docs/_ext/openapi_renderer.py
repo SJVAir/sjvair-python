@@ -68,12 +68,13 @@ class DropdownHttpdomainRenderer(HttpdomainRenderer):
             yield ''
 
             for endpoint, method, operation in operations:
-                dropdown_title = f'{method.upper()} {endpoint}'
+                color = _METHOD_COLORS.get(method, 'secondary')
+                badge = f':bdg-{color}:`{method.upper()}`'
+                dropdown_title = f'{badge} {endpoint}'
                 if operation.get('summary'):
                     dropdown_title += f" — {operation['summary']}"
 
                 yield f'.. dropdown:: {dropdown_title}'
-                yield f'   :color: {_METHOD_COLORS.get(method, "secondary")}'
                 yield ''
                 yield from indented(self.render_operation(endpoint, method, operation))
                 yield ''
