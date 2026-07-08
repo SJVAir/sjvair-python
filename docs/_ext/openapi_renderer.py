@@ -3,8 +3,12 @@
 Groups endpoints under a real heading per OpenAPI tag (so Shibuya's "On this
 page" sidebar becomes a de facto submenu), collapses each endpoint into a
 sphinx-design dropdown with a compact method badge, and splits the endpoint
-body into Parameters / Request body / Response tabs. Each tab's content is
-still produced by HttpdomainRenderer's own render_parameters() /
+body into Parameters / Request body / Response tabs using sphinx-tabs
+(Shibuya ships dedicated CSS for sphinx-tabs' ARIA-based markup; its
+sphinx-design tab support is comparatively bare and had a layout bug where
+the (should be invisible) radio input that drives each sphinx-design tab
+took up its own row instead of overlapping its label). Each tab's content
+is still produced by HttpdomainRenderer's own render_parameters() /
 render_request_body() / render_responses() unchanged -- only how those
 pieces are assembled is different, so parameter lists, response schemas,
 and generated examples all behave exactly as before.
@@ -88,11 +92,11 @@ class DropdownHttpdomainRenderer(HttpdomainRenderer):
         `:queryparam x:` + `:queryparamtype x:` into a readable "x (type)"
         entry) only processes field lists that are *immediate* children of
         an `.. http:get::` directive's own content -- by explicit design,
-        it does not traverse into nested containers like a `tab-item`. So
-        each tab gets its own `.. http:get::` block (making its field list
-        a direct child again); all but the first are `:noindex:` so the
-        endpoint is only registered once in the search index / routing
-        table / cross-reference targets.
+        it does not traverse into nested containers like a sphinx-tabs
+        `tab`. So each tab gets its own `.. http:get::` block (making its
+        field list a direct child again); all but the first are `:noindex:`
+        so the endpoint is only registered once in the search index /
+        routing table / cross-reference targets.
         """
         body = []
 
@@ -132,10 +136,10 @@ class DropdownHttpdomainRenderer(HttpdomainRenderer):
             return block
 
         if tabs:
-            body.append('.. tab-set::')
+            body.append('.. tabs::')
             body.append('')
             for index, (title, lines) in enumerate(tabs):
-                body.append(f'   .. tab-item:: {title}')
+                body.append(f'   .. tab:: {title}')
                 body.append('')
                 body.extend(indented(indented(http_block(lines, noindex=index != 0))))
                 body.append('')

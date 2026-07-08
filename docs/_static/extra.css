@@ -21,20 +21,6 @@
    line so its field list gets Sphinx's normal param/type merging (see
    docs/_ext/openapi_renderer.py). The dropdown title already shows the
    method + path, so hide the redundant repeat inside each tab. */
-.sd-tab-content > dl.http > dt.sig {
+.sphinx-tabs-panel > dl.http > dt.sig {
   display: none;
-}
-
-/* sphinx-design's own CSS already sets `.sd-tab-set { position: relative }`
-   and `.sd-tab-set > input { opacity: 0; position: absolute }` so the radio
-   that drives each tab is invisible *and* out of flow, overlapping its
-   label instead of taking up its own row. Something in this theme's CSS
-   is winning over that for `position` specifically -- the tab radio ends
-   up static and pushes the tab content down by its own height. Reasserting
-   both rules here (extra.css loads last) restores the intended layout. */
-.sd-tab-set {
-  position: relative !important;
-}
-.sd-tab-set > input {
-  position: absolute !important;
 }

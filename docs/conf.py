@@ -20,6 +20,7 @@ extensions = [
     'sphinx_click',
     'sphinxcontrib.openapi',
     'sphinx_design',
+    'sphinx_tabs.tabs',
 ]
 
 source_suffix = {
