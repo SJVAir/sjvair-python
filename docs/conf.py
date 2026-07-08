@@ -21,6 +21,7 @@ extensions = [
     'sphinxcontrib.openapi',
     'sphinx_design',
     'sphinx_tabs.tabs',
+    'sphinx_copybutton',
 ]
 
 source_suffix = {
@@ -28,6 +29,12 @@ source_suffix = {
 }
 
 myst_heading_anchors = 3
+
+# colon_fence: lets directives use ::: instead of ```, which scales better
+# for nested directives (e.g. sphinx-design grids containing cards) since
+# the fence-length-escalation rule is simpler to reason about than with
+# backticks.
+myst_enable_extensions = ['colon_fence']
 
 root_doc = 'index'
 
@@ -67,6 +74,19 @@ def _flatten_nullable_types(node):
             _flatten_nullable_types(item)
 
 
+def _write_if_changed(path, content):
+    """Skip the write when content is unchanged, so mtime doesn't move.
+
+    sphinx-autobuild watches the whole source tree, including this
+    generated directory. An unconditional write_text() here bumps the
+    file's mtime on every single build -- even when the fetched spec is
+    byte-identical to what's already on disk -- which the watcher sees as
+    a change and rebuilds again, forever.
+    """
+    if not path.exists() or path.read_text() != content:
+        path.write_text(content)
+
+
 def fetch_openapi_spec(app):
     """Pull the live SJVAir API spec so the REST API reference is never stale.
 
@@ -82,19 +102,21 @@ def fetch_openapi_spec(app):
         response.raise_for_status()
         spec = response.json()
         _flatten_nullable_types(spec)
-        spec_path.write_text(json.dumps(spec))
-        body_path.write_text(
+        _write_if_changed(spec_path, json.dumps(spec))
+        _write_if_changed(
+            body_path,
             '```{eval-rst}\n'
             '.. openapi:: _generated/openapi.json\n'
             '   :generate-examples-from-schemas:\n'
-            '```\n'
+            '```\n',
         )
     except requests.exceptions.RequestException as exc:
-        body_path.write_text(
+        _write_if_changed(
+            body_path,
             '```{warning}\n'
             f'Unable to fetch the live OpenAPI spec from sjvair.com for this build ({exc}). '
             'Check your network connection. The rest of the documentation built normally.\n'
-            '```\n'
+            '```\n',
         )
 
 
@@ -119,6 +141,11 @@ html_theme_options = {
     'accent_color': 'blue',
     'light_logo': '_static/logo-color.svg',
     'dark_logo': '_static/logo-white.svg',
+    'nav_links': [
+        {'title': 'Home', 'url': 'index'},
+        {'title': 'Commands', 'url': 'cli/quickstart'},
+        {'title': 'Python', 'url': 'client/quickstart'},
+    ],
 
     "github_url": "https://github.com/sjvair/sjvair-python"
 }

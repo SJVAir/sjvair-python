@@ -1,0 +1,9 @@
+# hms
+
+NOAA Hazard Mapping System smoke plumes and fire points. Both subcommands accept `--date YYYY-MM-DD` (defaults to today) and region filters.
+
+```bash
+sjvair hms smoke
+sjvair hms fire --date 2023-08-15
+sjvair hms smoke --county Fresno --output smoke.json
+```
