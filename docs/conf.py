@@ -28,12 +28,14 @@ html_title = 'SJVAir Toolkit'
 
 templates_path = ['_templates']
 
-html_static_path = ['assets', 'stylesheets']
+html_static_path = ['_static']
 html_css_files = ['extra.css']
-html_favicon = 'assets/favicon/favicon.ico'
+html_favicon = '_static/favicon/favicon.ico'
 
 html_theme_options = {
     'accent_color': 'blue',
-    'light_logo': 'logo-color.svg',
-    'dark_logo': 'logo-white.svg',
+    'light_logo': '_static/logo-color.svg',
+    'dark_logo': '_static/logo-white.svg',
+
+    "github_url": "https://github.com/sjvair/sjvair-python"
 }
