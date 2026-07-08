@@ -76,6 +76,7 @@ class DropdownHttpdomainRenderer(HttpdomainRenderer):
                     dropdown_title += f" — {operation['summary']}"
 
                 yield f'.. dropdown:: {dropdown_title}'
+                yield f'   :name: {method} {endpoint}'
                 yield ''
                 yield from indented(self.render_operation(endpoint, method, operation))
                 yield ''

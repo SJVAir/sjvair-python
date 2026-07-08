@@ -16,3 +16,11 @@
   /* Sky-blue links so they stay readable on the dark background */
   --md-typeset-a-color:         #1fb9ef;
 }
+
+/* REST API reference: each tab re-renders its own ".. http:get::" signature
+   line so its field list gets Sphinx's normal param/type merging (see
+   docs/_ext/openapi_renderer.py). The dropdown title already shows the
+   method + path, so hide the redundant repeat inside each tab. */
+.sd-tab-content > dl.http > dt.sig {
+  display: none;
+}
