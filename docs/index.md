@@ -27,3 +27,14 @@ sjvair monitors list --county Fresno --output fresno.csv
 
 - **[CLI guide](cli/guide.md)** / **[CLI reference](cli/reference.md)**
 - **[Python client guide](client/guide.md)** / **[API reference](client/reference.md)**
+
+```{toctree}
+:hidden:
+:maxdepth: 2
+
+cli/guide
+cli/reference
+client/guide
+client/reference
+changelog
+```
