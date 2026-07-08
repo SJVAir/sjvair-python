@@ -65,7 +65,7 @@ maps = ["matplotlib", "contextily", "geopandas", "shapely", "folium", "pyarrow"]
 
 [dependency-groups]
 dev = ["ruff", "ty", "pytest", "pytest-cov", "pytest-vcr", "responses"]
-docs = ["sphinx", "myst-parser", "sphinx-autobuild", "shibuya", "sphinx-click", "sphinxcontrib-openapi"]
+docs = ["sphinx", "myst-parser", "sphinx-autobuild", "shibuya", "sphinx-click", "sphinxcontrib-openapi", "sphinx-design"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=sjvair --cov-report=term-missing"

@@ -1,7 +1,12 @@
 import json
+import sys
 from pathlib import Path
 
 import requests
+
+sys.path.insert(0, str(Path(__file__).parent / '_ext'))
+
+from openapi_renderer import DropdownHttpdomainRenderer  # noqa: E402
 
 project = 'SJVAir Toolkit'
 copyright = '2026, Central California Asthma Collaborative'
@@ -14,6 +19,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx_click',
     'sphinxcontrib.openapi',
+    'sphinx_design',
 ]
 
 source_suffix = {
@@ -26,7 +32,13 @@ root_doc = 'index'
 
 exclude_patterns = ['_build', 'superpowers', 'api/_generated']
 
-openapi_default_renderer = 'httpdomain'
+# openapi_renderers holds a class object, which Sphinx can't pickle for its
+# config-value cache -- a build-speed optimization only, not a correctness
+# issue, so the resulting warning is safe to suppress.
+suppress_warnings = ['config.cache']
+
+openapi_renderers = {'dropdown': DropdownHttpdomainRenderer}
+openapi_default_renderer = 'dropdown'
 
 OPENAPI_SPEC_URL = 'https://www.sjvair.com/api/2.0/openapi.json'
 OPENAPI_GENERATED_DIR = Path(__file__).parent / 'api' / '_generated'
