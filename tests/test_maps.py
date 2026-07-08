@@ -26,6 +26,13 @@ def test_color_for_value_above_highest_range_uses_top_color():
     assert color_for_value(LEVELS, 1000) == '#ff0000'
 
 
+def test_color_for_value_accepts_string_value():
+    # The live API serializes some monitors' latest.value as a JSON string
+    # (e.g. "6.34") rather than a number -- render_frame() must not crash
+    # when that happens. Same blend as test_color_for_value_blends_between_levels.
+    assert color_for_value(LEVELS, '6') == '#80f200'
+
+
 @pytest.mark.parametrize(
     'monitor,expected',
     [

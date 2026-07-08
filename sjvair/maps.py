@@ -31,7 +31,12 @@ def color_for_value(levels: dict[str, Any], value: float) -> str:
 
     Linearly blends between the matched level and the next one, matching the
     server's ``LevelSet.get_color()``.
+
+    ``value`` is coerced to ``float`` since the API serializes some
+    monitors' ``latest.value`` as a JSON string (server-side ``Decimal``
+    fields aren't natively JSON-serializable) rather than a number.
     """
+    value = float(value)
     ordered = sorted(levels.values(), key=lambda lvl: lvl['range'][0])
     for i, level in enumerate(ordered):
         lo = level['range'][0]
