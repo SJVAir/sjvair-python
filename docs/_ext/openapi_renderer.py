@@ -1,12 +1,13 @@
 """Custom sphinxcontrib-openapi renderer: dropdown-wrapped endpoints grouped by tag.
 
-Phase 1 of the REST API reference's visual overhaul: group endpoints under a
-real heading per OpenAPI tag (so Shibuya's "On this page" sidebar becomes a
-de facto submenu) and collapse each endpoint into a colored sphinx-design
-dropdown. Everything *inside* a dropdown is still produced by
-HttpdomainRenderer's own render_operation() unchanged, so parameter lists,
-response schemas, and generated examples behave exactly as before -- only
-the grouping and collapsing wrapper is new.
+Groups endpoints under a real heading per OpenAPI tag (so Shibuya's "On this
+page" sidebar becomes a de facto submenu), collapses each endpoint into a
+sphinx-design dropdown with a compact method badge, and splits the endpoint
+body into Parameters / Request body / Response tabs. Each tab's content is
+still produced by HttpdomainRenderer's own render_parameters() /
+render_request_body() / render_responses() unchanged -- only how those
+pieces are assembled is different, so parameter lists, response schemas,
+and generated examples all behave exactly as before.
 """
 
 from sphinxcontrib.openapi.renderers import HttpdomainRenderer
@@ -78,3 +79,56 @@ class DropdownHttpdomainRenderer(HttpdomainRenderer):
                 yield ''
                 yield from indented(self.render_operation(endpoint, method, operation))
                 yield ''
+
+    def render_operation(self, endpoint, method, operation):
+        """Render one operation with Parameters/Request body/Response as tabs.
+
+        Reuses the parent class's render_parameters/render_request_body/
+        render_responses unchanged -- only the top-level assembly (flat
+        sequence vs. tabs) differs from HttpdomainRenderer.render_operation.
+        """
+        yield f'.. http:{method}:: {endpoint}'
+        if operation.get('deprecated'):
+            yield '   :deprecated:'
+        yield ''
+
+        body = []
+
+        if operation.get('summary'):
+            body.append(f"**{operation['summary']}**")
+            body.append('')
+
+        if operation.get('description'):
+            body.extend(self._convert_markup(operation['description']).strip().splitlines())
+            body.append('')
+
+        tabs = []
+
+        parameter_lines = list(self.render_parameters(operation.get('parameters', [])))
+        if parameter_lines:
+            tabs.append(('Parameters', parameter_lines))
+
+        if 'requestBody' in operation:
+            request_lines = list(
+                self.render_request_body(operation['requestBody'], endpoint, method)
+            )
+            if request_lines:
+                tabs.append(('Request body', request_lines))
+
+        response_lines = list(self.render_responses(operation['responses']))
+        if response_lines:
+            tabs.append(('Response', response_lines))
+
+        if tabs:
+            body.append('.. tab-set::')
+            body.append('')
+            for title, lines in tabs:
+                body.append(f'   .. tab-item:: {title}')
+                body.append('')
+                # Doubly-indented: once to nest under `.. tab-set::`
+                # (matching the tab-item line itself), once more to nest
+                # under the `.. tab-item::` directive it belongs to.
+                body.extend(indented(indented(lines)))
+                body.append('')
+
+        yield from indented(body)
