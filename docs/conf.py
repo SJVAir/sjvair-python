@@ -6,7 +6,7 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).parent / '_ext'))
 
-from openapi_renderer import DropdownHttpdomainRenderer  # noqa: E402
+from openapi_renderer import DropdownHttpdomainRenderer, RestoreSphinxTabsTabClass  # noqa: E402
 
 project = 'SJVAir Toolkit'
 copyright = '2026, Central California Asthma Collaborative'
@@ -100,6 +100,7 @@ def fetch_openapi_spec(app):
 
 def setup(app):
     app.connect('builder-inited', fetch_openapi_spec)
+    app.add_post_transform(RestoreSphinxTabsTabClass)
 
 autodoc_member_order = 'bysource'
 autosummary_generate = False

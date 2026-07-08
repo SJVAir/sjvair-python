@@ -14,8 +14,38 @@ pieces are assembled is different, so parameter lists, response schemas,
 and generated examples all behave exactly as before.
 """
 
+from sphinx.transforms.post_transforms import SphinxPostTransform
+from sphinx_tabs.tabs import SphinxTabsTab
 from sphinxcontrib.openapi.renderers import HttpdomainRenderer
 from sphinxcontrib.openapi.renderers._httpdomain import _iterinorder, indented
+
+
+class RestoreSphinxTabsTabClass(SphinxPostTransform):
+    """Undo a sphinx-design bug that clobbers sphinx-tabs' tab-button class.
+
+    sphinx-design's dropdown post-transform (DropdownHtmlTransform,
+    priority 199), when using card styling, replaces the `classes` of
+    every nodes.paragraph descendant with just ["sd-card-text"]:
+
+        para["classes"] = ([] if "classes" in para else para["classes"]) + ["sd-card-text"]
+
+    That condition is inverted -- every docutils node has a `classes`
+    list, so the `[]` branch always runs, discarding whatever classes
+    were already there instead of preserving them. sphinx-tabs' tab
+    button (SphinxTabsTab) is itself a nodes.paragraph subclass (it just
+    renders as <button>), so nesting tabs inside a dropdown loses the
+    "sphinx-tabs-tab" class every tab stylesheet (sphinx-tabs' own and
+    Shibuya's) targets. Runs at a higher priority so it fires after
+    DropdownHtmlTransform.
+    """
+
+    default_priority = 200
+
+    def run(self, **kwargs):
+        for node in self.document.findall(SphinxTabsTab):
+            if 'sphinx-tabs-tab' not in node['classes']:
+                node['classes'] = ['sphinx-tabs-tab']
+
 
 _METHOD_COLORS = {
     'get': 'success',
