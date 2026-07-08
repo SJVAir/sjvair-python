@@ -31,4 +31,9 @@ templates_path = ['_templates']
 html_static_path = ['assets', 'stylesheets']
 html_css_files = ['extra.css']
 html_favicon = 'assets/favicon/favicon.ico'
-html_logo = 'assets/logo.svg'
+
+html_theme_options = {
+    'accent_color': 'blue',
+    'light_logo': 'logo-color.svg',
+    'dark_logo': 'logo-white.svg',
+}
