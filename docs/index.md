@@ -45,6 +45,13 @@ API reference <client/reference>
 ```
 
 ```{toctree}
+:caption: REST API
+:hidden:
+
+Reference <api/reference>
+```
+
+```{toctree}
 :hidden:
 
 Changelog <changelog>
