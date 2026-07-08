@@ -23,3 +23,10 @@ autosummary_generate = False
 
 html_theme = 'shibuya'
 html_title = 'SJVAir Toolkit'
+
+templates_path = ['_templates']
+
+html_static_path = ['assets', 'stylesheets']
+html_css_files = ['extra.css']
+html_favicon = 'assets/favicon/favicon.ico'
+html_logo = 'assets/logo.svg'

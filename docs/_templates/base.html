@@ -1,0 +1,11 @@
+{% extends "!base.html" %}
+{% block extrahead %}
+  {{ super() }}
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ pathto('_static/favicon/apple-touch-icon.png', 1) }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ pathto('_static/favicon/favicon-32x32.png', 1) }}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ pathto('_static/favicon/favicon-16x16.png', 1) }}">
+  <link rel="manifest" href="{{ pathto('_static/favicon/site.webmanifest', 1) }}">
+  <meta name="msapplication-config" content="{{ pathto('_static/favicon/browserconfig.xml', 1) }}">
+  <meta name="msapplication-TileColor" content="#276eaf">
+  <meta name="theme-color" content="#276eaf">
+{% endblock %}
