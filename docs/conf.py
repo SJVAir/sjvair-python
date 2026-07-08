@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import requests
@@ -25,8 +26,32 @@ root_doc = 'index'
 
 exclude_patterns = ['_build', 'superpowers', 'api/_generated']
 
+openapi_default_renderer = 'httpdomain'
+
 OPENAPI_SPEC_URL = 'https://www.sjvair.com/api/2.0/openapi.json'
 OPENAPI_GENERATED_DIR = Path(__file__).parent / 'api' / '_generated'
+
+
+def _flatten_nullable_types(node):
+    """Collapse OpenAPI 3.1 `type: [X, "null"]` into a single type.
+
+    sphinxcontrib-openapi's generate-examples-from-schemas crashes on JSON
+    Schema 2020-12 style type unions (TypeError: unhashable type: 'list'),
+    which is how the live spec expresses nullable fields. This keeps the
+    non-null type and drops "null" from the list so example generation has
+    a concrete type to work with; nullability is still documented separately
+    via each field's own description/required-ness.
+    """
+    if isinstance(node, dict):
+        type_value = node.get('type')
+        if isinstance(type_value, list):
+            non_null = [t for t in type_value if t != 'null']
+            node['type'] = non_null[0] if non_null else 'string'
+        for value in node.values():
+            _flatten_nullable_types(value)
+    elif isinstance(node, list):
+        for item in node:
+            _flatten_nullable_types(item)
 
 
 def fetch_openapi_spec(app):
@@ -37,15 +62,18 @@ def fetch_openapi_spec(app):
     """
     OPENAPI_GENERATED_DIR.mkdir(parents=True, exist_ok=True)
     spec_path = OPENAPI_GENERATED_DIR / 'openapi.json'
-    body_path = OPENAPI_GENERATED_DIR / 'body.md'
+    body_path = OPENAPI_GENERATED_DIR / 'openapi.md'
 
     try:
         response = requests.get(OPENAPI_SPEC_URL, timeout=10)
         response.raise_for_status()
-        spec_path.write_text(response.text)
+        spec = response.json()
+        _flatten_nullable_types(spec)
+        spec_path.write_text(json.dumps(spec))
         body_path.write_text(
             '```{eval-rst}\n'
             '.. openapi:: _generated/openapi.json\n'
+            '   :generate-examples-from-schemas:\n'
             '```\n'
         )
     except requests.exceptions.RequestException as exc:
