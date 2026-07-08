@@ -2,8 +2,8 @@
 
 Auto-generated from the `sjvair` command-line application.
 
-::: mkdocs-click
-    :module: sjvair.cli.main
-    :command: cli
-    :prog_name: sjvair
-    :depth: 1
+```{eval-rst}
+.. click:: sjvair.cli.main:cli
+   :prog: sjvair
+   :nested: full
+```

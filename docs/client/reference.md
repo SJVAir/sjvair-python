@@ -4,24 +4,38 @@ Auto-generated from docstrings.
 
 ## Client
 
-::: sjvair.client.SJVAirClient
+```{eval-rst}
+.. autoclass:: sjvair.client.SJVAirClient
+   :members:
+```
 
 ## Resources
 
-::: sjvair.resources.monitors.MonitorsResource
+```{eval-rst}
+.. autoclass:: sjvair.resources.monitors.MonitorsResource
+   :members:
 
-::: sjvair.resources.regions.RegionsResource
+.. autoclass:: sjvair.resources.regions.RegionsResource
+   :members:
 
-::: sjvair.resources.calenviroscreen.CalEnviroScreenResource
+.. autoclass:: sjvair.resources.calenviroscreen.CalEnviroScreenResource
+   :members:
 
-::: sjvair.resources.ceidars.CEIDARSResource
+.. autoclass:: sjvair.resources.ceidars.CEIDARSResource
+   :members:
 
-::: sjvair.resources.hms.HMSResource
+.. autoclass:: sjvair.resources.hms.HMSResource
+   :members:
 
-::: sjvair.resources.pesticides.PesticidesResource
+.. autoclass:: sjvair.resources.pesticides.PesticidesResource
+   :members:
+```
 
 ## Maps
 
 Rendering utilities behind `sjvair map`/`sjvair timelapse` — requires `pip install sjvair[maps]` to actually render (importing the module does not).
 
-::: sjvair.maps
+```{eval-rst}
+.. automodule:: sjvair.maps
+   :members:
+```
