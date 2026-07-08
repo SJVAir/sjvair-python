@@ -14,7 +14,13 @@ class CalEnviroScreenResource(BaseResource):
     VERSION = '4.0'
 
     def list(self, year: int, **params: Any) -> Iterator[dict[str, Any]]:
-        """Iterate all census tract scores for the given data year."""
+        """Iterate census tract scores for the given data year.
+
+        Filters are applied server-side. Pass ``region_id`` to scope to a
+        region, ``dac_sb535``/``dac_category`` for the disadvantaged-community
+        designation, or ``__gt``/``__gte``/``__lt``/``__lte`` suffixes for
+        threshold lookups on any score field (e.g. ``pollution_p__gte=75``).
+        """
         return self._paginate(f'calenviroscreen/{self.VERSION}/{year}/', params or None)
 
     def get(self, year: int, tract: str) -> dict[str, Any]:

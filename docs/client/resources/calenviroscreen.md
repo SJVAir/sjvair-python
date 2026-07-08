@@ -34,13 +34,18 @@ with SJVAirClient() as client:
 
 | Method | Signature |
 |---|---|
-| `list(**params)` | `list(year=2020, **params)` — iterate every scored tract for a census year |
+| `list(**params)` | `list(year=2020, **params)` — iterate scored tracts for a census year, filtered server-side |
 | `get(year, tract)` | A single tract's full indicator set |
 
+`list()` filters happen on the server, not client-side — pass `region_id` to scope to a region (same ID used everywhere else in the client), and `__gt`/`__gte`/`__lt`/`__lte` suffixes for threshold lookups on any score field:
+
 ```python
-# Every tract in Fresno County scoring in the top quartile for pollution burden
-tracts = [
-    t for t in client.calenviroscreen.list(year=2020)
-    if t['pollution_p'] >= 75
-]
+# Every tract in Fresno County in the top quartile for pollution burden
+tracts = list(client.calenviroscreen.list(
+    year=2020,
+    region_id='r6phe',
+    pollution_p__gte=75,
+))
 ```
+
+Other useful filters: `dac_sb535` (boolean — SB 535 disadvantaged-community designation), `dac_category`, and `__gt`/`__gte`/`__lt`/`__lte` on `ci_score`, `ci_score_p`, `popchar_p`, `pol_pm_p`, `pol_ozone_p`, `pol_diesel_p`, and `pol_traffic_p`.
