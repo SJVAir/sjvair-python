@@ -40,3 +40,18 @@ uv run ruff format sjvair/
 # Type check
 uv run ty check sjvair/
 ```
+
+### Documentation
+
+Docs are built with [Sphinx](https://www.sphinx-doc.org/) + [MyST](https://myst-parser.readthedocs.io/) and deployed to GitHub Pages on every push to `main`.
+
+```bash
+# Install with docs dependencies
+uv sync --group docs
+
+# Build once (output in docs/_build/html)
+uv run sphinx-build -b html docs docs/_build/html
+
+# Build, serve, and auto-rebuild on change
+uv run sphinx-autobuild docs docs/_build/html --port 8080
+```
