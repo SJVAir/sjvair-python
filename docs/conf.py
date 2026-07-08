@@ -14,6 +14,8 @@ source_suffix = {
     '.md': 'markdown',
 }
 
+myst_heading_anchors = 3
+
 root_doc = 'index'
 
 exclude_patterns = ['_build', 'superpowers']
