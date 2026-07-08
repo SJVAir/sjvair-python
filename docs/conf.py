@@ -5,6 +5,7 @@ author = 'Central California Asthma Collaborative'
 extensions = [
     'myst_parser',
     'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',
     'sphinx_click',
 ]
@@ -18,7 +19,7 @@ root_doc = 'index'
 exclude_patterns = ['_build', 'superpowers']
 
 autodoc_member_order = 'bysource'
-autosummary_generate = True
+autosummary_generate = False
 
 html_theme = 'shibuya'
 html_title = 'SJVAir Toolkit'
