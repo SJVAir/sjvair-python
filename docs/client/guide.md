@@ -38,6 +38,7 @@ with SJVAirClient() as client:
 | `summaries(monitor_id, entry_type, resolution, start_date, end_date)` | Aggregated summaries at hourly / daily / monthly / quarterly / seasonal / yearly resolution. Rows are tagged with `monitor_id`. |
 | `closest(entry_type, lat, lon)` | Up to 3 nearest active monitors with distance and latest entry. |
 | `current(entry_type)` | All active monitors with their most recent entry. |
+| `current_at(entry_type, timestamp, region=None, bbox=None)` | Like `current()`, but as of a historical timestamp. Optionally scope to one or more region IDs or a `(west, south, east, north)` bbox. |
 
 ### Regions — `client.regions`
 
@@ -107,6 +108,32 @@ with SJVAirClient() as client:
     engine = ExportEngine(client, output=Path('fresno-pm25.csv'))
     engine.run(monitor_ids=['uuid-1', 'uuid-2'], start_date='2020-01-01', end_date='2023-12-31')
 ```
+
+## Maps
+
+`sjvair.maps.render_frame` — the same rendering function behind `sjvair map create`/`sjvair timelapse create` — is importable directly for scripting. Requires `pip install sjvair[maps]` (matplotlib, contextily, geopandas, shapely) to actually render; importing `sjvair.maps` itself never requires it.
+
+```python
+from pathlib import Path
+from sjvair import SJVAirClient
+from sjvair.maps import render_frame
+
+with SJVAirClient() as client:
+    region = client.regions.get(region_id)
+    levels = client.monitors.meta()['entries']['pm25']['levels']
+    monitors = list(client.monitors.current('pm25'))
+
+    png_bytes = render_frame(
+        monitors=monitors,
+        levels=levels,
+        outlines=[region['boundary']['geometry']],
+        viewport=(-120.5, 36.0, -119.5, 37.0),  # west, south, east, north
+        timestamp_label='2026-07-04 21:00 PDT',
+    )
+    Path('map.png').write_bytes(png_bytes)
+```
+
+For historical snapshots and timelapses, `sjvair map create`/`sjvair timelapse create` already handle region resolution, viewport/bbox computation, and video assembly — see the [CLI guide](../cli/guide.md#map).
 
 ## Output formats
 

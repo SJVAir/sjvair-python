@@ -58,6 +58,31 @@ def test_monitors_current():
 
 
 @rsps.activate
+def test_monitors_current_at():
+    rsps.add(rsps.GET, BASE + 'monitors/pm25/at/', json={'data': [{'id': 'a'}], 'has_next_page': False})
+    result = list(SJVAirClient().monitors.current_at('pm25', '2026-07-04T21:00:00'))
+    assert result == [{'id': 'a'}]
+
+    request = rsps.calls[0].request
+    assert 'timestamp=2026-07-04T21%3A00%3A00' in request.url
+
+
+@rsps.activate
+def test_monitors_current_at_with_region_and_bbox():
+    rsps.add(rsps.GET, BASE + 'monitors/pm25/at/', json={'data': [], 'has_next_page': False})
+    list(SJVAirClient().monitors.current_at(
+        'pm25', '2026-07-04T21:00:00',
+        region=['abc', 'def'],
+        bbox=(-120.5, 36.0, -119.5, 37.0),
+    ))
+
+    request = rsps.calls[0].request
+    assert 'region=abc' in request.url
+    assert 'region=def' in request.url
+    assert 'bbox=-120.5%2C36.0%2C-119.5%2C37.0' in request.url
+
+
+@rsps.activate
 def test_monitors_summaries_hourly_fans_out_by_month():
     # Jan+Feb 2025 → 2 month calls
     rsps.add(rsps.GET, BASE + 'monitors/abc/summaries/pm25/hourly/2025/1/', json={

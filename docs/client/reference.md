@@ -19,3 +19,9 @@ Auto-generated from docstrings.
 ::: sjvair.resources.hms.HMSResource
 
 ::: sjvair.resources.pesticides.PesticidesResource
+
+## Maps
+
+Rendering utilities behind `sjvair map`/`sjvair timelapse` — requires `pip install sjvair[maps]` to actually render (importing the module does not).
+
+::: sjvair.maps
