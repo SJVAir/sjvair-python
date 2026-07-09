@@ -36,11 +36,12 @@ def test_color_for_value_accepts_string_value():
 @pytest.mark.parametrize(
     'monitor,expected',
     [
-        ({'type': 'AirNow', 'is_sjvair': False}, '^'),
-        ({'type': 'BAM', 'is_sjvair': False}, '^'),
-        ({'type': 'PurpleAir', 'is_sjvair': True}, 'o'),
-        ({'type': 'PurpleAir', 'is_sjvair': False}, 's'),
-        ({'type': 'AirGradient', 'is_sjvair': False}, 's'),
+        ({'type': 'airnow', 'grade': 'fem', 'is_sjvair': False}, '^'),
+        ({'type': 'bam1022', 'grade': 'frm', 'is_sjvair': False}, '^'),
+        ({'type': 'purpleair', 'grade': 'lcs', 'is_sjvair': True}, 'o'),
+        ({'type': 'purpleair', 'grade': 'lcs', 'is_sjvair': False}, 's'),
+        ({'type': 'airgradient', 'grade': 'lcs', 'is_sjvair': False}, 's'),
+        ({'type': 'somenewtype', 'grade': None, 'is_sjvair': False}, 's'),
     ],
 )
 def test_shape_for_monitor(monitor, expected):

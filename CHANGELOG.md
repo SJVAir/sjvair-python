@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `timelapse create --start`/`--end` before they're sent to the API. An
   explicit UTC offset in the timestamp always wins over `--tz`; with neither,
   naive timestamps are still treated as UTC (unchanged default).
+- **CLI**: `--location {inside,outside}` on `map create`/`timelapse create`
+  filters to indoor or outdoor monitors. Filtered client-side, since neither
+  the live `current/` nor historical `at/` endpoint supports a location
+  query filter server-side.
+- **CLI**: `map create`/`timelapse create` gain the same `--county`/`--city`/
+  `--zip`/`--tract`/`--urban` region-filter shortcuts already available on the
+  other data-export commands, resolved by type (e.g. `--urban Fresno` can't
+  accidentally match the county or city of the same name).
 
 ### Changed
 
@@ -21,6 +29,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   an unrecognized extension) now print CSV instead of JSON — CSV is the more
   common target for a download-focused CLI. Pass `--format json` for the old
   behavior.
+
+### Fixed
+
+- `sjvair.maps.render_frame()` markers now use a border that's a darker shade
+  of their own fill color (`_blend_hex(fill, '#000000', 0.2)`, matching
+  sjvair.com's own region-admin rendering) instead of plain black.
+- `sjvair.maps.shape_for_monitor()` now classifies regulatory (triangle)
+  monitors by the API's `grade` field (`fem`/`frm`) instead of a hardcoded,
+  already-broken set of monitor `type` strings (the old set used mixed-case
+  names like `'AirNow'` that never matched the API's actual lowercase values,
+  so every monitor rendered as a circle or square regardless of grade).
+  Requires a server exposing `grade` on `/monitors/`.
 
 ## [0.1.0a2] - 2026-07-08
 

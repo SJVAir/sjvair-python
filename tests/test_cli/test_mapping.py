@@ -4,7 +4,7 @@ import click
 import pytest
 import responses as rsps
 
-from sjvair.cli.mapping import AreaSelection, filter_monitors, resolve_area
+from sjvair.cli.mapping import AreaSelection, filter_by_location, filter_monitors, resolve_area
 from sjvair.client import SJVAirClient
 
 BASE = 'https://www.sjvair.com/api/2.0/'
@@ -120,3 +120,14 @@ def test_filter_monitors_region_scope_uses_polygon_covers():
     ]
     result = filter_monitors(monitors, area, scope='region')
     assert [m['id'] for m in result] == ['inside']
+
+
+def test_filter_by_location_none_keeps_everything():
+    monitors = [{'id': 'a', 'location': 'inside'}, {'id': 'b', 'location': 'outside'}]
+    assert filter_by_location(monitors, None) == monitors
+
+
+def test_filter_by_location_outside():
+    monitors = [{'id': 'a', 'location': 'inside'}, {'id': 'b', 'location': 'outside'}]
+    result = filter_by_location(monitors, 'outside')
+    assert [m['id'] for m in result] == ['b']

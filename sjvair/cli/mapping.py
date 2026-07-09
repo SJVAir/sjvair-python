@@ -86,6 +86,19 @@ def filter_monitors(monitors: list[dict[str, Any]], area: AreaSelection, scope: 
     return result
 
 
+def filter_by_location(monitors: list[dict[str, Any]], location: str | None) -> list[dict[str, Any]]:
+    """Keep only monitors whose ``location`` field matches ('inside'/'outside').
+
+    Client-side, since neither the live current/ nor historical at/ endpoint
+    supports filtering by location server-side (confirmed empirically --
+    passing location as a query param returns the unfiltered set). ``None``
+    returns ``monitors`` unchanged.
+    """
+    if location is None:
+        return monitors
+    return [m for m in monitors if m.get('location') == location]
+
+
 def _resolve_one_region(client: SJVAirClient, value: str) -> dict[str, Any]:
     try:
         return client.regions.get(value)

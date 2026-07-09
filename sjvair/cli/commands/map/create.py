@@ -5,13 +5,18 @@ from pathlib import Path
 import click
 
 from ...main import _ClientContext, pass_ctx
-from ...mapping import filter_monitors, resolve_area
-from ...utils import parse_bbox, parse_timestamp
+from ...mapping import filter_by_location, filter_monitors, resolve_area
+from ...utils import parse_bbox, parse_timestamp, resolve_region
 
 
 @click.command('create')
 @click.option('--type', 'entry_type', required=True, help='Entry type, e.g. pm25.')
 @click.option('--region', 'regions', multiple=True, help='Region ID or name. Repeatable.')
+@click.option('--county', default=None, help='Shortcut for --region, resolved by type. Only one region filter at a time.')
+@click.option('--city', default=None, help='Shortcut for --region, resolved by type.')
+@click.option('--zip', 'zip_code', default=None, help='Shortcut for --region, resolved by type.')
+@click.option('--tract', default=None, help='Shortcut for --region, resolved by type (FIPS).')
+@click.option('--urban', default=None, help='Shortcut for --region, resolved by type (urban-area name).')
 @click.option('--buffer', type=float, default=None, help='Pad the viewport around --region (<=1.0 = fraction, >1.0 = meters).')
 @click.option('--bbox', 'bbox_str', default=None, help='Manual viewport "west,south,east,north".')
 @click.option(
@@ -26,6 +31,13 @@ from ...utils import parse_bbox, parse_timestamp
     help='ISO 8601 timestamp for a historical snapshot. Omit for live data. UTC unless it '
     'has an explicit offset or --tz is set.',
 )
+@click.option(
+    '--location',
+    type=click.Choice(['inside', 'outside']),
+    default=None,
+    help='Only show monitors at this location. Omit to show both (filtered client-side; '
+    'the API has no location filter of its own).',
+)
 @click.option('--legend/--no-legend', default=True, help='Show/hide the AQI color legend.')
 @click.option('--timestamp-label/--no-timestamp-label', 'show_timestamp', default=True, help='Show/hide the burned-in timestamp.')
 @click.option('--width', type=int, default=1600)
@@ -36,10 +48,16 @@ def map_create(
     ctx: _ClientContext,
     entry_type: str,
     regions: tuple[str, ...],
+    county: str | None,
+    city: str | None,
+    zip_code: str | None,
+    tract: str | None,
+    urban: str | None,
     buffer: float | None,
     bbox_str: str | None,
     scope: str,
     timestamp: str | None,
+    location: str | None,
     legend: bool,
     show_timestamp: bool,
     width: int,
@@ -51,6 +69,10 @@ def map_create(
 
     if output_path.exists() and not ctx.force:
         raise click.ClickException(f'{output_path} already exists. Use --force to overwrite.')
+
+    shortcut = resolve_region(ctx.client, county, city, zip_code, tract, None, urban)
+    if shortcut:
+        regions = (*regions, shortcut)
 
     bbox = parse_bbox(bbox_str) if bbox_str else None
     area = resolve_area(ctx.client, regions, buffer, bbox, scope)
@@ -72,6 +94,8 @@ def map_create(
     else:
         monitors = filter_monitors(list(ctx.client.monitors.current(entry_type)), area, scope)
         label = None
+
+    monitors = filter_by_location(monitors, location)
 
     png_bytes = render_frame(
         monitors=monitors,

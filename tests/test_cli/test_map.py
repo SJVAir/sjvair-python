@@ -123,6 +123,81 @@ def test_map_create_historical_calls_current_at(tmp_path, monkeypatch):
 
 
 @rsps.activate
+def test_map_create_urban_shortcut_resolves_to_region(tmp_path, monkeypatch):
+    monkeypatch.setattr('sjvair.maps.render_frame', lambda **kwargs: b'PNGDATA')
+
+    rsps.add(
+        rsps.GET,
+        BASE + 'regions/places/search/',
+        json={'data': [{'id': 'abc', 'name': 'Fresno', 'type': 'urban_area'}]},
+    )
+    rsps.add(rsps.GET, BASE + 'regions/abc/', json=_region_response())
+    rsps.add(rsps.GET, BASE + 'monitors/meta/', json=META)
+    rsps.add(rsps.GET, BASE + 'monitors/pm25/at/', json={'data': [], 'has_next_page': False})
+
+    out = tmp_path / 'map.png'
+    result = CliRunner().invoke(
+        cli,
+        [
+            'map', 'create',
+            '--type', 'pm25',
+            '--urban', 'Fresno',
+            '--timestamp', '2026-07-04T21:00:00',
+            '--output', str(out),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    at_calls = [c for c in rsps.calls if '/at/' in c.request.url]
+    assert len(at_calls) == 1
+    assert 'region=abc' in at_calls[0].request.url
+
+
+@rsps.activate
+def test_map_create_location_filters_client_side(tmp_path, monkeypatch):
+    # The API has no location filter of its own -- map_create must filter
+    # the response itself, since passing location as a query param would be
+    # silently ignored by the server (confirmed against the live API).
+    rendered = {}
+
+    def fake_render_frame(**kwargs):
+        rendered['monitors'] = kwargs['monitors']
+        return b'PNGDATA'
+
+    monkeypatch.setattr('sjvair.maps.render_frame', fake_render_frame)
+
+    rsps.add(rsps.GET, BASE + 'regions/abc/', json=_region_response())
+    rsps.add(rsps.GET, BASE + 'monitors/meta/', json=META)
+    rsps.add(
+        rsps.GET,
+        BASE + 'monitors/pm25/at/',
+        json={
+            'data': [
+                {'id': 'm1', 'location': 'inside', 'position': {'type': 'Point', 'coordinates': [-119.5, 36.5]}},
+                {'id': 'm2', 'location': 'outside', 'position': {'type': 'Point', 'coordinates': [-119.5, 36.5]}},
+            ],
+            'has_next_page': False,
+        },
+    )
+
+    out = tmp_path / 'map.png'
+    result = CliRunner().invoke(
+        cli,
+        [
+            'map', 'create',
+            '--type', 'pm25',
+            '--region', 'abc',
+            '--timestamp', '2026-07-04T21:00:00',
+            '--location', 'outside',
+            '--output', str(out),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert [m['id'] for m in rendered['monitors']] == ['m2']
+
+
+@rsps.activate
 def test_map_create_localizes_naive_timestamp_with_global_tz(tmp_path, monkeypatch):
     monkeypatch.setattr('sjvair.maps.render_frame', lambda **kwargs: b'PNGDATA')
 

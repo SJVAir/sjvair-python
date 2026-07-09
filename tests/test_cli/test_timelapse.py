@@ -92,6 +92,42 @@ def test_timelapse_create_renders_frames_and_calls_ffmpeg(tmp_path, monkeypatch)
 
 
 @rsps.activate
+def test_timelapse_create_urban_shortcut_resolves_to_region(tmp_path, monkeypatch):
+    monkeypatch.setattr('sjvair.maps.render_frame', lambda **kwargs: b'PNGDATA')
+    monkeypatch.setattr('subprocess.run', _fake_ffmpeg_run)
+    monkeypatch.setattr('shutil.which', lambda name: '/usr/bin/ffmpeg')
+
+    rsps.add(
+        rsps.GET,
+        BASE + 'regions/places/search/',
+        json={'data': [{'id': 'abc', 'name': 'Fresno', 'type': 'urban_area'}]},
+    )
+    rsps.add(rsps.GET, BASE + 'regions/abc/', json=_region_response())
+    rsps.add(rsps.GET, BASE + 'monitors/meta/', json=META)
+    rsps.add(rsps.GET, BASE + 'monitors/pm25/at/', json={'data': [], 'has_next_page': False})
+
+    out = tmp_path / 'out.mp4'
+    result = CliRunner().invoke(
+        cli,
+        [
+            'timelapse', 'create',
+            '--type', 'pm25',
+            '--urban', 'Fresno',
+            '--start', '2026-07-04T21:00:00',
+            '--end', '2026-07-04T21:00:00',
+            '--interval', '5m',
+            '--frames-dir', str(tmp_path / 'frames'),
+            '--output', str(out),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    at_calls = [c for c in rsps.calls if '/at/' in c.request.url]
+    assert len(at_calls) == 1
+    assert 'region=abc' in at_calls[0].request.url
+
+
+@rsps.activate
 def test_timelapse_create_skips_existing_frames(tmp_path, monkeypatch):
     render_calls = []
     monkeypatch.setattr('sjvair.maps.render_frame', lambda **kwargs: render_calls.append(1) or b'NEW')

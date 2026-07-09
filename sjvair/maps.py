@@ -49,13 +49,13 @@ def color_for_value(levels: dict[str, Any], value: float) -> str:
     return ordered[0]['color']
 
 
-REGULATORY_TYPES = {'AirNow', 'BAM', 'AQView'}
+REGULATORY_GRADES = {'fem', 'frm'}
 
 
 def shape_for_monitor(monitor: dict[str, Any]) -> str:
     """Marker shape by monitor grade: triangle for regulatory (FEM/FRM) networks,
     circle for SJVAir low-cost sensors, square for other third-party monitors."""
-    if monitor.get('type') in REGULATORY_TYPES:
+    if monitor.get('grade') in REGULATORY_GRADES:
         return '^'
     if monitor.get('is_sjvair'):
         return 'o'
@@ -108,12 +108,13 @@ def render_frame(
             continue
 
         point = gpd.GeoSeries([shape(position)], crs='EPSG:4326').to_crs('EPSG:3857').iloc[0]
+        fill_color = color_for_value(levels, entry['value'])
         ax.scatter(
             point.x,
             point.y,
             s=120,
-            c=color_for_value(levels, entry['value']),
-            edgecolors='black',
+            c=fill_color,
+            edgecolors=_blend_hex(fill_color, '#000000', 0.2),
             marker=shape_for_monitor(monitor),
             linewidths=0.75,
             zorder=5,
