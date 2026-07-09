@@ -1,4 +1,4 @@
-# calenviroscreen
+# CalEnviroScreen
 
 CalEnviroScreen 4.0 cumulative-impact scores by census tract for a given `--year` (the census year the scores are keyed to — currently 2020).
 

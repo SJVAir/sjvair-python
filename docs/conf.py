@@ -22,6 +22,7 @@ extensions = [
     'sphinx_design',
     'sphinx_tabs.tabs',
     'sphinx_copybutton',
+    'sphinxcontrib.video',
 ]
 
 source_suffix = {
@@ -34,7 +35,7 @@ myst_heading_anchors = 3
 # for nested directives (e.g. sphinx-design grids containing cards) since
 # the fence-length-escalation rule is simpler to reason about than with
 # backticks.
-myst_enable_extensions = ['colon_fence']
+myst_enable_extensions = ['colon_fence', 'fieldlist']
 
 root_doc = 'index'
 
@@ -137,15 +138,42 @@ html_css_files = ['extra.css']
 html_js_files = ['openapi-dropdown-links.js']
 html_favicon = '_static/favicon/favicon.ico'
 
+html_context = {
+    "source_type": "github",
+    "source_user": "sjvair",
+    "source_repo": "sjvair-python",
+}
+
+# Same as Shibuya's default sidebar list, minus "Edit this page" -- keeps the
+# repo-stats card without the edit link.
+html_sidebars = {
+    '**': [
+        'sidebars/localtoc.html',
+        'sidebars/repo-stats.html',
+        'sidebars/carbon-ads.html',
+        'sidebars/ethical-ads.html',
+    ],
+}
+
 html_theme_options = {
     'accent_color': 'blue',
     'light_logo': '_static/logo-color.svg',
     'dark_logo': '_static/logo-white.svg',
     'nav_links': [
         {'title': 'Home', 'url': 'index'},
-        {'title': 'Commands', 'url': 'cli/quickstart'},
-        {'title': 'Python', 'url': 'client/quickstart'},
+        {'title': 'Commands', 'url': 'cli/usage'},
+        {'title': 'Python', 'url': 'client/usage'},
+        {
+            'title': 'Reference',
+            'children': [
+                {'title': 'Commands', 'url': 'cli/reference'},
+                {'title': 'Python', 'url': 'client/reference'},
+                {'title': 'REST API', 'url': 'api/reference'},
+            ],
+        },
     ],
+
+    "globaltoc_expand_depth": 1,
 
     "github_url": "https://github.com/sjvair/sjvair-python"
 }

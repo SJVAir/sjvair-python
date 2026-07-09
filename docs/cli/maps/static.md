@@ -8,8 +8,9 @@ Pick an area with `--region` (repeatable — ID or name) and/or `--bbox "west,so
 # Live snapshot of Fresno County right now
 sjvair map create --type pm25 --region Fresno --output fresno-now.png
 
-# Same, but as of a specific moment last July 4th
-sjvair map create --type pm25 --region Fresno \
+# Same, but as of a specific moment last July 4th (see Usage > Timestamps
+# for --tz -- without it, a naive timestamp like this is UTC, not local time)
+sjvair --tz America/Los_Angeles map create --type pm25 --region Fresno \
   --timestamp 2026-07-04T20:30:00 --output fresno-2026-07-04.png
 
 # Manual bounding box, everything in view (not just inside a region)
@@ -28,7 +29,7 @@ Other options: `--legend/--no-legend`, `--timestamp-label/--no-timestamp-label` 
 Fresno County at 8:30pm on the 4th of July — fireworks smoke pushing several monitors into Moderate/Unhealthy-for-Sensitive-Groups territory:
 
 ```bash
-sjvair map create --type pm25 --region r6phe \
+sjvair --tz America/Los_Angeles map create --type pm25 --region r6phe \
   --timestamp 2026-07-04T20:30:00 --output fresno-2026-07-04.png
 ```
 

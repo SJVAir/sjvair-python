@@ -1,6 +1,6 @@
-# CEIDARS — `client.ceidars`
+# Facility Emissions — `client.ceidars`
 
-California Emissions Inventory Development and Reporting System facility data — permitted stationary emissions sources (SIC code, location, minor/major source status).
+CEIDARS (California Emissions Inventory Development and Reporting System) facility data — permitted stationary emissions sources (SIC code, location, minor/major source status).
 
 ```python
 from sjvair import SJVAirClient

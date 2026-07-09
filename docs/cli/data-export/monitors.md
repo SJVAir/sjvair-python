@@ -1,4 +1,4 @@
-# monitors
+# Air Monitors
 
 **`monitors list`** — list monitors, optionally scoped to a region or to the SJVAir-operated fleet.
 

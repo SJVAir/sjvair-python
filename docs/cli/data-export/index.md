@@ -2,22 +2,22 @@
 
 Commands for listing, filtering, and bulk-exporting the datasets SJVAir aggregates.
 
-| Command | Data |
+| Page | Command |
 |---|---|
-| [monitors](monitors.md) | Air quality monitors and their entries |
-| [regions](regions.md) | Counties, cities, ZIPs, tracts, and other boundaries |
-| [calenviroscreen](calenviroscreen.md) | CalEnviroScreen 4.0 cumulative-impact scores |
-| [ceidars](ceidars.md) | CEIDARS facility emissions data |
-| [hms](hms.md) | NOAA Hazard Mapping System smoke and fire data |
-| [pesticides](pesticides.md) | CDPR pesticide use and product data |
+| [Air Monitors](monitors.md) | `sjvair monitors` |
+| [Regions](regions.md) | `sjvair regions` |
+| [CalEnviroScreen](calenviroscreen.md) | `sjvair calenviroscreen` |
+| [Facility Emissions](ceidars.md) | `sjvair ceidars` |
+| [Fire & Smoke](hms.md) | `sjvair hms` |
+| [Pesticides](pesticides.md) | `sjvair pesticides` |
 
 ```{toctree}
 :hidden:
 
-Monitors <monitors>
-Regions <regions>
-CalEnviroScreen <calenviroscreen>
-CEIDARS <ceidars>
-HMS <hms>
-Pesticides <pesticides>
+monitors
+regions
+calenviroscreen
+ceidars
+hms
+pesticides
 ```

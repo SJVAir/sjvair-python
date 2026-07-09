@@ -50,7 +50,13 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Atmospheric Science",
     "Topic :: Utilities",
 ]
-dependencies = ["requests", "click", "python-dotenv", "pyyaml"]
+dependencies = [
+    "requests",
+    "click",
+    "python-dotenv",
+    "pyyaml",
+    "tzdata>=2026.2",
+]
 
 [project.urls]
 Homepage = "https://www.sjvair.com/"
@@ -65,7 +71,18 @@ maps = ["matplotlib", "contextily", "geopandas", "shapely", "folium", "pyarrow"]
 
 [dependency-groups]
 dev = ["ruff", "ty", "pytest", "pytest-cov", "pytest-vcr", "responses"]
-docs = ["sphinx", "myst-parser", "sphinx-autobuild", "shibuya", "sphinx-click", "sphinxcontrib-openapi", "sphinx-design", "sphinx-tabs", "sphinx-copybutton"]
+docs = [
+    "sphinx",
+    "myst-parser",
+    "sphinx-autobuild",
+    "shibuya",
+    "sphinx-click",
+    "sphinxcontrib-openapi",
+    "sphinx-design",
+    "sphinx-tabs",
+    "sphinx-copybutton",
+    "sphinxcontrib-video>=0.4.2",
+]
 
 [tool.pytest.ini_options]
 addopts = "--cov=sjvair --cov-report=term-missing"

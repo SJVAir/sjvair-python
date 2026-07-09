@@ -1,6 +1,6 @@
-# ceidars
+# Facility Emissions
 
-CEIDARS facility emissions data, optionally scoped to a region.
+CEIDARS (California Emissions Inventory Development and Reporting System) facility emissions data, optionally scoped to a region.
 
 ```bash
 sjvair ceidars

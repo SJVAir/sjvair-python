@@ -1,4 +1,4 @@
-# Monitors — `client.monitors`
+# Air Monitors — `client.monitors`
 
 Air quality monitors and their sensor readings.
 

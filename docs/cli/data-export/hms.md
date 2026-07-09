@@ -1,6 +1,6 @@
-# hms
+# Fire & Smoke
 
-NOAA Hazard Mapping System smoke plumes and fire points. Both subcommands accept `--date YYYY-MM-DD` (defaults to today) and region filters.
+NOAA Hazard Mapping System (HMS) smoke plumes and fire points. Both subcommands accept `--date YYYY-MM-DD` (defaults to today) and region filters.
 
 ```bash
 sjvair hms smoke

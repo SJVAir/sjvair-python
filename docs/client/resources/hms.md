@@ -1,6 +1,6 @@
-# HMS — `client.hms`
+# Fire & Smoke — `client.hms`
 
-NOAA Hazard Mapping System smoke plume and fire detection data.
+NOAA Hazard Mapping System (HMS) smoke plume and fire detection data.
 
 ```python
 from sjvair import SJVAirClient

@@ -1,4 +1,4 @@
-# pesticides
+# Pesticides
 
 California Department of Pesticide Regulation (CDPR) data. Pick a dataset with `--type`:
 
