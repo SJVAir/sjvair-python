@@ -122,6 +122,34 @@ def test_map_create_historical_calls_current_at(tmp_path, monkeypatch):
     assert 'region=abc' in at_calls[0].request.url
 
 
+@rsps.activate
+def test_map_create_localizes_naive_timestamp_with_global_tz(tmp_path, monkeypatch):
+    monkeypatch.setattr('sjvair.maps.render_frame', lambda **kwargs: b'PNGDATA')
+
+    rsps.add(rsps.GET, BASE + 'regions/abc/', json=_region_response())
+    rsps.add(rsps.GET, BASE + 'monitors/meta/', json=META)
+    rsps.add(rsps.GET, BASE + 'monitors/pm25/at/', json={'data': [], 'has_next_page': False})
+
+    out = tmp_path / 'map.png'
+    result = CliRunner().invoke(
+        cli,
+        [
+            '--tz', 'America/Los_Angeles',
+            'map', 'create',
+            '--type', 'pm25',
+            '--region', 'abc',
+            '--timestamp', '2026-07-04T20:30:00',
+            '--output', str(out),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    at_calls = [c for c in rsps.calls if '/at/' in c.request.url]
+    assert len(at_calls) == 1
+    # July 4th is PDT (UTC-7) -- the naive timestamp must carry that offset.
+    assert 'timestamp=2026-07-04T20%3A30%3A00-07%3A00' in at_calls[0].request.url
+
+
 def test_map_create_refuses_to_overwrite_without_force(tmp_path):
     out = tmp_path / 'map.png'
     out.write_bytes(b'existing')

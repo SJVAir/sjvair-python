@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **CLI**: global `--tz`/`SJVAIR_TZ` (IANA zone name, e.g. `America/Los_Angeles`)
+  localizes naive timestamps passed to `map create --timestamp` and
+  `timelapse create --start`/`--end` before they're sent to the API. An
+  explicit UTC offset in the timestamp always wins over `--tz`; with neither,
+  naive timestamps are still treated as UTC (unchanged default).
+
+### Changed
+
+- **CLI**: commands with no `--format` and no `--output` (or an `--output` with
+  an unrecognized extension) now print CSV instead of JSON — CSV is the more
+  common target for a download-focused CLI. Pass `--format json` for the old
+  behavior.
+
 ## [0.1.0a2] - 2026-07-08
 
 ### Added

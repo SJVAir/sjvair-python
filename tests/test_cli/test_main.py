@@ -34,9 +34,9 @@ def test_format_flag_overrides_extension():
     assert format_from_path(Path('out.csv'), 'json') == 'json'
 
 
-def test_format_defaults_to_json_when_no_output():
+def test_format_defaults_to_csv_when_no_output():
     from sjvair.cli.utils import format_from_path
-    assert format_from_path(None, None) == 'json'
+    assert format_from_path(None, None) == 'csv'
 
 
 def test_split_ids_flattens_comma_and_repeat():

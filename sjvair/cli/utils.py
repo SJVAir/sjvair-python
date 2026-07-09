@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterator
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import click
 import yaml
@@ -23,6 +24,26 @@ def parse_duration(value: str) -> timedelta:
         raise click.UsageError(f'Invalid duration {value!r}. Use a number followed by s/m/h/d, e.g. "5m" or "1h".')
     amount, unit = match.groups()
     return timedelta(**{_DURATION_UNITS[unit]: int(amount)})
+
+
+def parse_timestamp(value: str, tz: str | None) -> datetime:
+    """Parse an ISO 8601 timestamp, localizing a naive value with ``tz``.
+
+    An explicit UTC offset in ``value`` (e.g. ``2026-07-04T20:30:00-07:00``)
+    always wins over ``tz`` -- ``tz`` only applies when ``value`` has no
+    offset of its own. With neither, the result stays naive, which the
+    server treats as UTC.
+    """
+    try:
+        dt = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise click.UsageError(f'Invalid ISO 8601 timestamp: {value!r}') from exc
+    if dt.tzinfo is None and tz:
+        try:
+            dt = dt.replace(tzinfo=ZoneInfo(tz))
+        except ZoneInfoNotFoundError as exc:
+            raise click.UsageError(f'Unknown --tz value: {tz!r}') from exc
+    return dt
 
 
 def parse_bbox(value: str) -> tuple[float, float, float, float]:
@@ -58,7 +79,7 @@ def format_from_path(output: Path | None, fmt: str | None) -> str:
             return ext
         if ext in ('yaml', 'yml'):
             return 'yaml'
-    return 'json'
+    return 'csv'
 
 
 def resolve_region(

@@ -10,7 +10,7 @@ import click
 
 from ...main import _ClientContext, pass_ctx
 from ...mapping import resolve_area
-from ...utils import parse_bbox, parse_duration
+from ...utils import parse_bbox, parse_duration, parse_timestamp
 
 
 def _frame_timestamps(start: datetime, end: datetime, interval: timedelta) -> Iterator[datetime]:
@@ -31,8 +31,14 @@ def _frame_timestamps(start: datetime, end: datetime, interval: timedelta) -> It
     default='region',
     help='Query filter: strict region polygon, or everything in the viewport.',
 )
-@click.option('--start', 'start_str', required=True, help='ISO 8601 start timestamp.')
-@click.option('--end', 'end_str', required=True, help='ISO 8601 end timestamp.')
+@click.option(
+    '--start', 'start_str', required=True,
+    help='ISO 8601 start timestamp. UTC unless it has an explicit offset or --tz is set.',
+)
+@click.option(
+    '--end', 'end_str', required=True,
+    help='ISO 8601 end timestamp. UTC unless it has an explicit offset or --tz is set.',
+)
 @click.option('--interval', 'interval_str', required=True, help='Duration between frames, e.g. 5m, 1h.')
 @click.option('--fps', type=int, default=24)
 @click.option('--frames-dir', type=click.Path(path_type=Path), default=None, help='Defaults to <output>.frames/.')
@@ -69,8 +75,8 @@ def timelapse_create(
     if output_path.exists() and not ctx.force:
         raise click.ClickException(f'{output_path} already exists. Use --force to overwrite.')
 
-    start = datetime.fromisoformat(start_str)
-    end = datetime.fromisoformat(end_str)
+    start = parse_timestamp(start_str, ctx.tz)
+    end = parse_timestamp(end_str, ctx.tz)
     if start > end:
         raise click.UsageError('--start must be on or before --end.')
     interval = parse_duration(interval_str)

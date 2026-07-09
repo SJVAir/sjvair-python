@@ -6,7 +6,7 @@ import click
 
 from ...main import _ClientContext, pass_ctx
 from ...mapping import filter_monitors, resolve_area
-from ...utils import parse_bbox
+from ...utils import parse_bbox, parse_timestamp
 
 
 @click.command('create')
@@ -20,7 +20,12 @@ from ...utils import parse_bbox
     default='region',
     help='Query filter: strict region polygon, or everything in the viewport.',
 )
-@click.option('--timestamp', default=None, help='ISO 8601 timestamp for a historical snapshot. Omit for live data.')
+@click.option(
+    '--timestamp',
+    default=None,
+    help='ISO 8601 timestamp for a historical snapshot. Omit for live data. UTC unless it '
+    'has an explicit offset or --tz is set.',
+)
 @click.option('--legend/--no-legend', default=True, help='Show/hide the AQI color legend.')
 @click.option('--timestamp-label/--no-timestamp-label', 'show_timestamp', default=True, help='Show/hide the burned-in timestamp.')
 @click.option('--width', type=int, default=1600)
@@ -54,15 +59,16 @@ def map_create(
     levels = meta['entries'][entry_type]['levels']
 
     if timestamp:
+        ts = parse_timestamp(timestamp, ctx.tz)
         monitors = list(
             ctx.client.monitors.current_at(
                 entry_type,
-                timestamp,
+                ts.isoformat(),
                 region=area.query_region,
                 bbox=area.query_bbox,
             )
         )
-        label = timestamp
+        label = ts.isoformat()
     else:
         monitors = filter_monitors(list(ctx.client.monitors.current(entry_type)), area, scope)
         label = None

@@ -14,10 +14,11 @@ CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 
 
 class _ClientContext:
-    def __init__(self, client: SJVAirClient, quiet: bool, force: bool) -> None:
+    def __init__(self, client: SJVAirClient, quiet: bool, force: bool, tz: str | None) -> None:
         self.client = client
         self.quiet = quiet
         self.force = force
+        self.tz = tz
 
 
 pass_ctx = click.make_pass_decorator(_ClientContext)
@@ -51,12 +52,28 @@ class _TreeGroup(click.Group):
 @click.option('--timeout', envvar='SJVAIR_TIMEOUT', default=None, type=int, help='Request timeout in seconds.')
 @click.option('--quiet', is_flag=True, default=False, help='Suppress informational output.')
 @click.option('--force', is_flag=True, default=False, help='Overwrite existing output file.')
+@click.option(
+    '--tz',
+    envvar='SJVAIR_TZ',
+    default=None,
+    help='IANA timezone (e.g. America/Los_Angeles) for naive timestamps passed to '
+    '--timestamp/--start/--end. Timestamps with an explicit UTC offset are unaffected. '
+    'Omit to treat naive timestamps as UTC.',
+)
 @click.pass_context
-def cli(ctx: click.Context, base_url: str | None, api_key: str | None, timeout: int | None, quiet: bool, force: bool) -> None:
+def cli(
+    ctx: click.Context,
+    base_url: str | None,
+    api_key: str | None,
+    timeout: int | None,
+    quiet: bool,
+    force: bool,
+    tz: str | None,
+) -> None:
     """SJVAir data download CLI."""
     logging.basicConfig(level=logging.ERROR if quiet else logging.INFO, format='%(message)s')
     client = SJVAirClient(base_url=base_url, api_key=api_key, timeout=timeout)
-    ctx.obj = _ClientContext(client=client, quiet=quiet, force=force)
+    ctx.obj = _ClientContext(client=client, quiet=quiet, force=force, tz=tz)
 
 
 from .commands import (  # noqa: E402

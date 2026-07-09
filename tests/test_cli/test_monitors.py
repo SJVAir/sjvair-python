@@ -10,9 +10,18 @@ BASE = 'https://www.sjvair.com/api/2.0/'
 @rsps.activate
 def test_monitors_list_json():
     rsps.add(rsps.GET, BASE + 'monitors/', json={'data': [{'id': 'a', 'name': 'Test'}], 'has_next_page': False})
-    result = CliRunner().invoke(cli, ['monitors', 'list'])
+    result = CliRunner().invoke(cli, ['monitors', 'list', '--format', 'json'])
     assert result.exit_code == 0, result.output
     assert '"id": "a"' in result.output
+
+
+@rsps.activate
+def test_monitors_list_defaults_to_csv_stdout():
+    rsps.add(rsps.GET, BASE + 'monitors/', json={'data': [{'id': 'a', 'name': 'Test'}], 'has_next_page': False})
+    result = CliRunner().invoke(cli, ['monitors', 'list'])
+    assert result.exit_code == 0, result.output
+    assert result.output.splitlines()[0] == 'id,name'
+    assert 'a,Test' in result.output
 
 
 @rsps.activate
@@ -58,6 +67,7 @@ def test_monitors_summaries_comma_separated_and_tagged():
             '--resolution', 'yearly',
             '--start-date', '2025-01-01',
             '--end-date', '2025-12-31',
+            '--format', 'json',
         ],
     )
     assert result.exit_code == 0, result.output
