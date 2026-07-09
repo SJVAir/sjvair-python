@@ -16,6 +16,7 @@ with SJVAirClient() as client:
     "name": "AQ-101 Downtown Fresno",
     "type": "PurpleAir",
     "device": "PA-II",
+    "grade": "lcs",
     "is_active": True,
     "is_sjvair": True,
     "position": {"type": "Point", "coordinates": [-119.7726, 36.7468]},

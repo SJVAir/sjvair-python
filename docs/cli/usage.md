@@ -18,11 +18,14 @@ sjvair monitors list --format yaml            # YAML to stdout
 
 ## Timestamps
 
-`--timestamp`/`--start`/`--end` (`map create`, `timelapse create`) are UTC unless they carry an explicit offset (e.g. `2026-07-04T20:30:00-07:00`). Pass `--tz` (or set `SJVAIR_TZ`) with an IANA zone name to localize naive timestamps instead of computing the offset by hand — an explicit offset in the timestamp itself always wins over `--tz`.
+`--timestamp`/`--start`/`--end` (`map create`, `timelapse create`) are UTC unless they carry an explicit offset (e.g. `2026-07-04 20:30:00-07:00`). Pass `--tz` (or set `SJVAIR_TZ`) with an IANA zone name to localize naive timestamps instead of computing the offset by hand — an explicit offset in the timestamp itself always wins over `--tz`.
 
 ```bash
-sjvair --tz America/Los_Angeles map create --type pm25 --region Fresno \
-  --timestamp 2026-07-04T20:30:00 --output fresno-2026-07-04.png
+sjvair --tz America/Los_Angeles map create \
+  --type pm25 \
+  --county Fresno \
+  --timestamp "2026-07-04 20:30:00" \
+  --output fresno-2026-07-04.png
 ```
 
 ## Region filters

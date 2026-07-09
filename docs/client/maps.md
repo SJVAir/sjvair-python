@@ -24,8 +24,8 @@ with SJVAirClient() as client:
 
 This produces the same kind of image as `sjvair map create`:
 
-```{image} /_static/images/map-fresno.png
-:alt: Static PM2.5 map of Fresno County, monitors colored by AQI level
+```{image} /_static/images/map-stockton.png
+:alt: Static PM2.5 map of Stockton, monitors colored by AQI level
 ```
 
 For historical snapshots and timelapses, `sjvair map create`/`sjvair timelapse create` already handle region resolution, viewport/bbox computation, and video assembly — see the [CLI guide](../cli/maps/static.md).
