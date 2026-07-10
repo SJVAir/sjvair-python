@@ -9,10 +9,10 @@ with SJVAirClient() as client:
         print(monitor['id'], monitor['name'])
 
     # Get a single monitor
-    monitor = client.monitors.get('some-monitor-uuid')
+    monitor = client.monitors.get('some-monitor-id')
 
     # Fetch paginated entries
-    entries = list(client.monitors.entries('some-monitor-uuid', 'pm25'))
+    entries = list(client.monitors.entries('some-monitor-id', 'pm25'))
 
     # Search regions by name, ZIP code, or FIPS tract
     results = client.regions.search('Fresno')

@@ -6,13 +6,13 @@ Air quality monitors and their sensor readings.
 from sjvair import SJVAirClient
 
 with SJVAirClient() as client:
-    monitor = client.monitors.get('90e4a082-96b5-4bfc-8248-a1a5a2f6d0f1')
+    monitor = client.monitors.get('utYTsexeRT-08jcNDLeM3w')
     print(monitor)
 ```
 
 ```python
 {
-    "id": "90e4a082-96b5-4bfc-8248-a1a5a2f6d0f1",
+    "id": "utYTsexeRT-08jcNDLeM3w",
     "name": "AQ-101 Downtown Fresno",
     "type": "PurpleAir",
     "device": "PA-II",
@@ -33,7 +33,7 @@ with SJVAirClient() as client:
 | Method | Description |
 |---|---|
 | `list(**params)` | Iterate all monitors. Filter by `region_id`, `is_sjvair`, etc. |
-| `get(monitor_id)` | Get a single monitor by UUID. |
+| `get(monitor_id)` | Get a single monitor by ID. |
 | `meta()` | Field metadata: entry types, units, level thresholds, `default_pollutant`. |
 | `entries(monitor_id, entry_type, **params)` | Paginated entry records for one monitor. |
 | `export(monitor_id, start_date, end_date, scope)` | Bulk export up to 180 days at once. |
@@ -47,7 +47,7 @@ with SJVAirClient() as client:
 `entries()` returns paginated raw readings for one pollutant:
 
 ```python
-for entry in client.monitors.entries('90e4a082-96b5-4bfc-8248-a1a5a2f6d0f1', 'pm25'):
+for entry in client.monitors.entries('utYTsexeRT-08jcNDLeM3w', 'pm25'):
     print(entry)
 ```
 
@@ -55,7 +55,7 @@ for entry in client.monitors.entries('90e4a082-96b5-4bfc-8248-a1a5a2f6d0f1', 'pm
 {
     "timestamp": "2026-07-08T11:55:00Z",
     "value": 12.4,
-    "monitor_id": "90e4a082-96b5-4bfc-8248-a1a5a2f6d0f1",
+    "monitor_id": "utYTsexeRT-08jcNDLeM3w",
 }
 ```
 
@@ -63,7 +63,7 @@ for entry in client.monitors.entries('90e4a082-96b5-4bfc-8248-a1a5a2f6d0f1', 'pm
 
 ```python
 rows = list(client.monitors.summaries(
-    monitor_id='90e4a082-96b5-4bfc-8248-a1a5a2f6d0f1',
+    monitor_id='utYTsexeRT-08jcNDLeM3w',
     entry_type='pm25',
     resolution='daily',
     start_date='2026-07-01',
@@ -74,7 +74,7 @@ rows = list(client.monitors.summaries(
 ```python
 {
     "date": "2026-07-01",
-    "monitor_id": "90e4a082-96b5-4bfc-8248-a1a5a2f6d0f1",
+    "monitor_id": "utYTsexeRT-08jcNDLeM3w",
     "mean": 10.8,
     "min": 4.2,
     "max": 22.1,

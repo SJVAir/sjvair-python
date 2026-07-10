@@ -26,7 +26,7 @@ with SJVAirClient() as client:
 | Method | Description |
 |---|---|
 | `list(**params)` | Iterate all regions. Filter by `type` (county, city, zipcode, tract, …). |
-| `get(region_id)` | Get a single region by sqid. |
+| `get(region_id)` | Get a single region by ID. |
 | `search(query)` | Search by name, ZIP code, or FIPS tract code. |
 | `summaries(region_id, entry_type, resolution, start_date, end_date)` | Aggregated summaries for a region. Rows are tagged with `region_id`. |
 

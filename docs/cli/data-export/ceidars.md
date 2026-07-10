@@ -4,5 +4,8 @@ CEIDARS (California Emissions Inventory Development and Reporting System) facili
 
 ```bash
 sjvair ceidars
+```
+
+```bash
 sjvair ceidars --county Kern --output kern-facilities.csv
 ```

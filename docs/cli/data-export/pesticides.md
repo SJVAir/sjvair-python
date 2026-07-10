@@ -15,7 +15,16 @@ California Department of Pesticide Regulation (CDPR) data. Pick a dataset with `
 
 ```bash
 sjvair pesticides --type chemicals
+```
+
+```bash
 sjvair pesticides --type products --output products.csv
+```
+
+```bash
 sjvair pesticides --type use --county Fresno
+```
+
+```bash
 sjvair pesticides --type region-summary --county Fresno
 ```

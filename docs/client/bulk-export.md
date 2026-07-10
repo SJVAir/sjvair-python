@@ -9,5 +9,5 @@ from sjvair.export.engine import ExportEngine
 
 with SJVAirClient() as client:
     engine = ExportEngine(client, output=Path('fresno-pm25.csv'))
-    engine.run(monitor_ids=['uuid-1', 'uuid-2'], start_date='2020-01-01', end_date='2023-12-31')
+    engine.run(monitor_ids=['id-1', 'id-2'], start_date='2020-01-01', end_date='2023-12-31')
 ```
