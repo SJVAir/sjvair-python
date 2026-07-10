@@ -90,7 +90,7 @@ def map_create(
                 bbox=area.query_bbox,
             )
         )
-        label = ts.isoformat()
+        label = ts.isoformat(sep=' ')
     else:
         monitors = filter_monitors(list(ctx.client.monitors.current(entry_type)), area, scope)
         label = None

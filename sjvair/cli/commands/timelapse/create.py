@@ -132,7 +132,7 @@ def timelapse_create(
             levels=levels,
             outlines=area.outlines,
             viewport=area.viewport,
-            timestamp_label=ts.isoformat() if show_timestamp else None,
+            timestamp_label=ts.isoformat(sep=' ') if show_timestamp else None,
             show_legend=legend,
             width=width,
             height=height,
