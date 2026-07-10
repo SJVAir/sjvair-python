@@ -8,8 +8,12 @@ if the extra isn't installed) until a map is actually being rendered.
 
 from __future__ import annotations
 
+import math
 from io import BytesIO
 from typing import Any
+
+WEB_MERCATOR_CIRCUMFERENCE_M = 2 * math.pi * 6378137
+TILE_SIZE_PX = 256
 
 
 def _blend_hex(hex1: str, hex2: str, ratio: float) -> str:
@@ -93,7 +97,9 @@ def render_frame(
     ax.set_ylim(miny, maxy)
     ax.axis('off')
 
-    ctx.add_basemap(ax, source=ctx.providers.OpenStreetMap.Mapnik, attribution=False, reset_extent=False)
+    basemap_source = ctx.providers.OpenStreetMap.Mapnik
+    zoom = _zoom_for_extent(minx, maxx, width, basemap_source.get('max_zoom', 19))
+    ctx.add_basemap(ax, source=basemap_source, attribution=False, reset_extent=False, zoom=zoom)
     ax.set_xlim(minx, maxx)
     ax.set_ylim(miny, maxy)
 
@@ -130,6 +136,22 @@ def render_frame(
     plt.close(fig)
     buf.seek(0)
     return buf.getvalue()
+
+
+def _zoom_for_extent(minx: float, maxx: float, width_px: int, max_zoom: int) -> int:
+    """Pick a basemap zoom level fine enough that tiles aren't upscaled to fill
+    the output image.
+
+    contextily's own ``zoom='auto'`` only targets ~2 tiles across the extent
+    regardless of the requested output size, which looks pixelated once
+    those tiles are stretched across a much larger image (e.g. a tight
+    county-level viewport rendered at 1600px wide). Solving for the zoom
+    where one tile pixel maps to roughly one output pixel keeps the basemap
+    crisp at whatever resolution was asked for.
+    """
+    meters_per_output_px = (maxx - minx) / width_px
+    zoom = math.ceil(math.log2(WEB_MERCATOR_CIRCUMFERENCE_M / (TILE_SIZE_PX * meters_per_output_px)))
+    return max(0, min(zoom, max_zoom))
 
 
 def _adjust_aspect(
