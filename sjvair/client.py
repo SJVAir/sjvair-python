@@ -38,8 +38,9 @@ class SJVAirClient:
     """HTTP client for the SJVAir API.
 
     All resource objects (``monitors``, ``regions``, ``calenviroscreen4``,
-    ``calenviroscreen5``, ``ceidars``, ``hms``, ``pesticides``) are attached as
-    attributes and share this client's session,
+    ``calenviroscreen5``, ``ceidars``, ``hms``, ``pesticides``,
+    ``calheatscore``) are attached as attributes and share this client's
+    session,
     retry logic, and cooldown gate.
 
     Args:
@@ -75,6 +76,7 @@ class SJVAirClient:
         self._session = self._build_session()
 
         from .resources.calenviroscreen import CalEnviroScreen4Resource, CalEnviroScreen5Resource
+        from .resources.calheatscore import CalHeatScoreResource
         from .resources.ceidars import CEIDARSResource
         from .resources.hms import HMSResource
         from .resources.monitors import MonitorsResource
@@ -88,6 +90,7 @@ class SJVAirClient:
         self.ceidars = CEIDARSResource(self)
         self.hms = HMSResource(self)
         self.pesticides = PesticidesResource(self)
+        self.calheatscore = CalHeatScoreResource(self)
 
     def _build_session(self) -> requests.Session:
         session = requests.Session()
