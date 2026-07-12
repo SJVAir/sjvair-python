@@ -266,6 +266,64 @@ def test_timelapse_create_gif_warns_on_large_output(tmp_path, monkeypatch):
     assert 'GIF' in result.output
 
 
+@rsps.activate
+def test_timelapse_create_workers_renders_all_frames(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+
+    monkeypatch.setattr('sjvair.cli.commands.timelapse.parallel.ProcessPoolExecutor', ThreadPoolExecutor)
+    monkeypatch.setattr('sjvair.maps.render_frame', lambda **kwargs: b'PNGDATA')
+    monkeypatch.setattr('subprocess.run', _fake_ffmpeg_run)
+    monkeypatch.setattr('shutil.which', lambda name: '/usr/bin/ffmpeg')
+
+    rsps.add(rsps.GET, BASE + 'regions/abc/', json=_region_response())
+    rsps.add(rsps.GET, BASE + 'monitors/meta/', json=META)
+    for _ in range(3):
+        rsps.add(rsps.GET, BASE + 'monitors/pm25/at/', json={'data': [], 'has_next_page': False})
+
+    out = tmp_path / 'out.mp4'
+    frames_dir = tmp_path / 'frames'
+    result = CliRunner().invoke(
+        cli,
+        [
+            'timelapse', 'create',
+            '--type', 'pm25',
+            '--region', 'abc',
+            '--start', '2026-07-04T21:00:00',
+            '--end', '2026-07-04T21:10:00',
+            '--interval', '5m',
+            '--frames-dir', str(frames_dir),
+            '--workers', '2',
+            '--output', str(out),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert sorted(p.name for p in frames_dir.glob('*.png')) == [
+        'frame_000000.png',
+        'frame_000001.png',
+        'frame_000002.png',
+    ]
+    assert out.read_bytes() == b'FAKEVIDEO'
+
+
+def test_timelapse_create_workers_zero_is_an_error():
+    result = CliRunner().invoke(
+        cli,
+        [
+            'timelapse', 'create',
+            '--type', 'pm25',
+            '--bbox', '-120,36,-119,37',
+            '--start', '2026-07-04T21:00:00',
+            '--end', '2026-07-04T21:00:00',
+            '--interval', '5m',
+            '--workers', '0',
+            '--output', 'unused.mp4',
+        ],
+    )
+    assert result.exit_code != 0
+    assert '--workers must be at least 1' in result.output
+
+
 def test_timelapse_create_requires_ffmpeg(tmp_path, monkeypatch):
     monkeypatch.setattr('shutil.which', lambda name: None)
     result = CliRunner().invoke(

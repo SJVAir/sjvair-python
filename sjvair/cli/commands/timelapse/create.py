@@ -11,6 +11,7 @@ import click
 from ...main import _ClientContext, pass_ctx
 from ...mapping import filter_by_location, resolve_area
 from ...utils import parse_bbox, parse_duration, parse_timestamp, resolve_region
+from .parallel import render_frames_parallel
 
 
 # GIF has no real inter-frame compression, so file size scales roughly linearly
@@ -66,6 +67,11 @@ def _frame_timestamps(start: datetime, end: datetime, interval: timedelta) -> It
 @click.option('--height', type=int, default=1200)
 @click.option('--marker-size', type=int, default=220, help='Monitor marker size, in points^2 (matplotlib scatter `s`).')
 @click.option(
+    '--workers', type=int, default=1,
+    help='Parallel frame-rendering processes (default 1 = sequential). Uses separate '
+    'processes, not threads, since matplotlib rendering is not thread-safe.',
+)
+@click.option(
     '--output', 'output_path', type=click.Path(path_type=Path), required=True,
     help='Output path. Format is inferred from the extension: .gif or .mp4 (default for any other extension).',
 )
@@ -93,9 +99,13 @@ def timelapse_create(
     width: int,
     height: int,
     marker_size: int,
+    workers: int,
     output_path: Path,
 ) -> None:
     """Render a sequence of historical map frames and assemble them into a video."""
+    if workers < 1:
+        raise click.UsageError('--workers must be at least 1.')
+
     from ....maps import render_frame  # deferred: only needed if the maps extra is installed
 
     if shutil.which('ffmpeg') is None:
@@ -133,35 +143,59 @@ def timelapse_create(
             err=True,
         )
 
-    for i, ts in enumerate(timestamps):
-        frame_path = frames_dir / f'frame_{i:06d}.png'
-        if frame_path.exists():
-            continue
+    if workers <= 1:
+        for i, ts in enumerate(timestamps):
+            frame_path = frames_dir / f'frame_{i:06d}.png'
+            if frame_path.exists():
+                continue
 
-        monitors = list(
-            ctx.client.monitors.current_at(
-                entry_type,
-                ts.isoformat(),
-                region=area.query_region,
-                bbox=area.query_bbox,
+            monitors = list(
+                ctx.client.monitors.current_at(
+                    entry_type,
+                    ts.isoformat(),
+                    region=area.query_region,
+                    bbox=area.query_bbox,
+                )
             )
-        )
-        monitors = filter_by_location(monitors, location)
-        png_bytes = render_frame(
-            monitors=monitors,
+            monitors = filter_by_location(monitors, location)
+            png_bytes = render_frame(
+                monitors=monitors,
+                levels=levels,
+                outlines=area.outlines,
+                viewport=area.viewport,
+                timestamp_label=ts.isoformat(sep=' ') if show_timestamp else None,
+                show_legend=legend,
+                legend_label=meta['entries'][entry_type]['label'],
+                width=width,
+                height=height,
+                marker_size=marker_size,
+            )
+            frame_path.write_bytes(png_bytes)
+            if not ctx.quiet:
+                click.echo(f'[{i + 1}/{len(timestamps)}] {frame_path}')
+    else:
+        render_frames_parallel(
+            timestamps,
+            entry_type=entry_type,
             levels=levels,
             outlines=area.outlines,
             viewport=area.viewport,
-            timestamp_label=ts.isoformat(sep=' ') if show_timestamp else None,
-            show_legend=legend,
+            query_region=area.query_region,
+            query_bbox=area.query_bbox,
+            location=location,
+            frames_dir=frames_dir,
+            show_timestamp=show_timestamp,
+            legend=legend,
             legend_label=meta['entries'][entry_type]['label'],
             width=width,
             height=height,
             marker_size=marker_size,
+            workers=workers,
+            base_url=ctx.client.base_url,
+            api_key=ctx.client.api_key,
+            timeout=ctx.client.timeout,
+            quiet=ctx.quiet,
         )
-        frame_path.write_bytes(png_bytes)
-        if not ctx.quiet:
-            click.echo(f'[{i + 1}/{len(timestamps)}] {frame_path}')
 
     if is_gif:
         ffmpeg_args = [
