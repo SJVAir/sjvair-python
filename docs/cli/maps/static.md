@@ -96,7 +96,7 @@ sjvair map create `
 
 ::::
 
-Other options: `--location {inside,outside}` (omit for both — filtered client-side, since the API has no location filter of its own), `--legend/--no-legend`, `--timestamp-label/--no-timestamp-label` (both default on), `--width`/`--height` (pixels, default 1600×1200).
+Other options: `--location {inside,outside}` (omit for both — filtered client-side, since the API has no location filter of its own), `--legend/--no-legend`, `--timestamp-label/--no-timestamp-label` (both default on), `--width`/`--height` (pixels, default 1600×1200), `--marker-size` (monitor marker size, default 220).
 
 ## Example
 
