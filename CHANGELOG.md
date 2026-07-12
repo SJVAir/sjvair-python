@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Client**: `client.calenviroscreen5` — CalEnviroScreen 5.0 census tract
+  scores (`list(**params)`, `get(tract)`). Single-vintage dataset, no `year`
+  filter.
+- **CLI**: `sjvair calenviroscreen5` — CalEnviroScreen 5.0 export.
+- **Client**: `client.calheatscore` — CalEPA CalHeatScore daily ZIP-code
+  heat-risk scores (`list(**params)`, `zipcode(zipcode, **params)`).
+- **CLI**: `sjvair calheatscore` — CalHeatScore export, with `--zip` and
+  `--date` flags.
+
+### Changed
+
+- **Breaking**: `client.calenviroscreen` is replaced by
+  `client.calenviroscreen4` (CES4) and `client.calenviroscreen5` (CES5) —
+  there's no bare/default version, so a future CES6 doesn't have to fight
+  over what the short name means. `CalEnviroScreen4Resource.get()`'s argument
+  order changes from `get(year, tract)` to `get(tract, year=None)` now that
+  `year` is optional, matching the backend, which now defaults it
+  server-side to 2020 instead of requiring it in the URL path.
+- **Breaking**: `sjvair calenviroscreen` is replaced by
+  `sjvair calenviroscreen4` and `sjvair calenviroscreen5`. `--year` is now
+  optional on `calenviroscreen4` (was required).
+
 ## [0.1.0a3] - 2026-07-09
 
 ### Added
