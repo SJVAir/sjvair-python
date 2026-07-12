@@ -78,6 +78,7 @@ def cli(
 
 from .commands import (  # noqa: E402
     calenviroscreen,
+    calheatscore,
     ceidars,
     hms,
     pesticides,
@@ -96,3 +97,4 @@ cli.add_command(calenviroscreen.calenviroscreen5)
 cli.add_command(ceidars.ceidars)
 cli.add_command(hms.hms)
 cli.add_command(pesticides.pesticides)
+cli.add_command(calheatscore.calheatscore)
