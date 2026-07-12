@@ -53,6 +53,7 @@ Released under the [MIT License](license.md).
 :hidden:
 
 cli/usage
+cli/troubleshooting
 cli/data-export/index
 cli/maps/index
 ```
