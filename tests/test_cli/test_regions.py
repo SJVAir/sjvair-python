@@ -55,3 +55,24 @@ def test_two_region_flags_is_an_error():
     result = CliRunner().invoke(cli, ['monitors', 'list', '--city', 'Fresno', '--county', 'Fresno'])
     assert result.exit_code != 0
     assert 'Only one region filter' in result.output
+
+
+@rsps.activate
+def test_urban_flag_ambiguous_match_lists_candidates():
+    rsps.add(
+        rsps.GET,
+        BASE + 'regions/places/search/',
+        json={
+            'data': [
+                {'id': 'zvnca', 'name': 'Hanford', 'type': 'urban_area'},
+                {'id': 'k3net', 'name': 'Waterford', 'type': 'urban_area'},
+            ]
+        },
+    )
+    result = CliRunner().invoke(cli, ['monitors', 'list', '--urban', 'Hanford'])
+    assert result.exit_code != 0
+    assert (
+        "Ambiguous region 'Hanford' — 2 matches. Re-run with --region-id:\n"
+        "  zvnca                                 urban_area    Hanford\n"
+        "  k3net                                 urban_area    Waterford"
+    ) in result.output

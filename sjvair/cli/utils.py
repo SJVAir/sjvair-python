@@ -82,6 +82,10 @@ def format_from_path(output: Path | None, fmt: str | None) -> str:
     return 'csv'
 
 
+def format_region_table(results: list[dict[str, Any]]) -> str:
+    return '\n'.join(f'  {r["id"]:36s}  {r.get("type", ""):<12}  {r["name"]}' for r in results)
+
+
 def resolve_region(
     client: SJVAirClient,
     county: str | None = None,
@@ -112,9 +116,9 @@ def resolve_region(
         raise click.ClickException(f'No regions found matching {query!r}')
     if len(results) == 1:
         return results[0]['id']
-    lines = [f'  {r["id"]:36s}  {r.get("type", ""):<12}  {r["name"]}' for r in results]
     raise click.ClickException(
-        f'Ambiguous region {query!r} — {len(results)} matches. Re-run with --region-id:\n' + '\n'.join(lines)
+        f'Ambiguous region {query!r} — {len(results)} matches. Re-run with --region-id:\n'
+        + format_region_table(results)
     )
 
 
