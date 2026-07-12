@@ -12,7 +12,7 @@ Two new integrations are landing on `sjvair/sjvair.com` (the backend) as open PR
 - **PR 254** — Adds a brand-new CalHeatScore dataset: daily ZIP-code-level heat
   risk scores (0–4) from CalEPA. `GET /calheatscore/` (all ZIPs, defaults to
   today, filterable by `date`/`date__gte`/`date__lte`, `score`/`score__gte`/
-  `score__lte`, `zip_code`, `zip_code__in`) and `GET /calheatscore/<zip>/` (full
+  `score__lte`, `zipcode`, `zipcode__in`) and `GET /calheatscore/<zip>/` (full
   history for one ZIP, filterable by the same `date`/`score` params).
 
 Both PRs are open/unmerged upstream; we're building against their current diffs
@@ -112,19 +112,19 @@ class CalHeatScoreResource(BaseResource):
 
         Defaults to today (server-side) if no ``date`` filter is given. Filters:
         ``date``/``date__gte``/``date__lte``, ``score``/``score__gte``/``score__lte``,
-        ``zip_code``, ``zip_code__in`` (comma-separated).
+        ``zipcode``, ``zipcode__in`` (comma-separated).
         """
         return self._paginate(self.PATH, params or None)
 
-    def zip_code(self, zip_code: str, **params: Any) -> Iterator[dict[str, Any]]:
+    def zipcode(self, zipcode: str, **params: Any) -> Iterator[dict[str, Any]]:
         """Iterate all stored CalHeatScore rows (history + forecast) for one ZIP code, newest first.
 
         Accepts the same ``date``/``score`` filters as :meth:`list` to narrow the range.
         """
-        return self._paginate(f'{self.PATH}{zip_code}/', params or None)
+        return self._paginate(f'{self.PATH}{zipcode}/', params or None)
 ```
 
-`list()` and `zip_code()` return multiple rows in all cases (there's no
+`list()` and `zipcode()` return multiple rows in all cases (there's no
 single-object "detail" shape for this dataset), so neither is named `get()` —
 that name is reserved elsewhere in this client for single-dict lookups.
 
@@ -138,7 +138,7 @@ sjvair calheatscore --zip 93728 --date 2026-07-13  # one ZIP, one date
 ```
 
 Implementation: `--zip` alone or combined with `--date` calls
-`client.calheatscore.zip_code(zip_code, date=...)`; `--date` alone or no flags
+`client.calheatscore.zipcode(zipcode, date=...)`; `--date` alone or no flags
 calls `client.calheatscore.list(date=...)`. No client-side filtering needed —
 the server now handles the combined zip+date case directly.
 
@@ -174,7 +174,7 @@ Follow the existing `responses`-mocked pattern in `tests/test_resources/` and
 - `tests/test_resources/test_calenviroscreen.py` — update existing CES4 tests
   for the new query-param URL shape and `client.calenviroscreen4`; add CES5
   tests for `client.calenviroscreen5`.
-- `tests/test_resources/test_calheatscore.py` (new) — `list()` and `zip_code()`,
+- `tests/test_resources/test_calheatscore.py` (new) — `list()` and `zipcode()`,
   including the combined zip+date case.
 - `tests/test_cli/` — update/add CLI tests for `calenviroscreen4`,
   `calenviroscreen5`, and `calheatscore`, covering the flag combinations above.
