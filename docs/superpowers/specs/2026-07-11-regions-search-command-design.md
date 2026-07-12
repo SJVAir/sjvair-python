@@ -24,7 +24,7 @@ Python client for scripting use.
 
 ## Investigation that shaped this design
 
-Exploration during brainstorming (all against the live API) found three
+Exploration during brainstorming (all against the live API) found four
 things worth recording, since they're the reason the design isn't a
 straight 1:1 CLI wrapper around `search()`:
 
@@ -50,6 +50,15 @@ straight 1:1 CLI wrapper around `search()`:
    `required: false`, and empirically — an untyped call succeeds, just
    noisily). So "search everything" is a real, supported mode, not a
    workaround; it just isn't a good *default*.
+4. **The CLI already has a table formatter for exactly this shape of data**,
+   just not a shared/reusable one: `resolve_region()`'s ambiguous-region
+   error hand-formats `id`/`type`/`name` as aligned columns
+   (`f'  {r["id"]:36s}  {r.get("type", ""):<12}  {r["name"]}'`). Since this
+   command produces the same shape of data for the same purpose (a human
+   scanning candidates to pick one), it reuses that exact format as its
+   default terminal output — extracted into a shared helper so both call
+   sites render identically instead of maintaining two copies of the same
+   formatting.
 
 ## Decisions
 
@@ -61,7 +70,10 @@ straight 1:1 CLI wrapper around `search()`:
 | `--type <value>` | Single API call scoped to exactly that type (any of the 15 real region types, e.g. `protected`) |
 | `--type all` | Single API call with no type filter — the full, unrestricted search. `"all"` is not a real region type value, so no collision. |
 | Output fields | Every result has `boundary` stripped before formatting, regardless of `--format` |
-| Output machinery | Reuses `write_output`/`format_from_path` exactly as `regions list` does — CSV to stdout by default, `--output`/`--format` behave identically |
+| Default output (no `--format`/`--output`) | A human-readable table to stdout — the same `id`/`type`/`name` aligned format as the existing ambiguous-region error, via a new shared helper. Not CSV, unlike every other list-style command. |
+| `--format`/`--output` given | Falls through to the existing `write_output`/`format_from_path` machinery exactly as `regions list` does — CSV/JSON/YAML, to stdout or a file |
+| Shared table formatter | New `format_region_table(results)` in `sjvair/cli/utils.py`; `resolve_region()`'s ambiguous-region error is refactored to call it too, so both surfaces render identically and the format string exists in one place |
+| Table header row | None — matches the existing ambiguous-region error's output exactly (decided during brainstorming) |
 | Zero matches | `click.ClickException(f"No regions found matching {query!r}")` — identical wording to `resolve_region()`'s existing error |
 | Deduplication | None needed — each of the 5 default-mode calls is scoped to a distinct type, and a region has exactly one type, so no ID can appear twice across them |
 | `lookup()` CLI wrapper | Not added (decided during brainstorming) — out of scope |
@@ -93,12 +105,39 @@ Command flow:
    `DEFAULT_TYPES` order.
 4. If the combined result list is empty, raise
    `click.ClickException(f"No regions found matching {query!r}")`.
-5. Otherwise, strip the `boundary` key from every result dict, then call
+5. If neither `--format` nor `--output` was given: print
+   `format_region_table(results)` to stdout via `click.echo` and return —
+   `boundary` is never touched on this path, since the table formatter only
+   ever reads `id`/`type`/`name`.
+6. Otherwise (`--format` and/or `--output` given): strip the `boundary` key
+   from every result dict, then call
    `write_output(data, fmt, output_path, force=ctx.force)` exactly as
    `regions_list` does (`fmt = format_from_path(output_path, fmt)` first).
 
 `--type` itself is a plain string option (no `click.Choice` constraint) —
 matching `regions_list`'s existing `--type`, which is also unconstrained.
+
+## Refactor: shared table formatter in `sjvair/cli/utils.py`
+
+```python
+def format_region_table(results: list[dict[str, Any]]) -> str:
+    return '\n'.join(f'  {r["id"]:36s}  {r.get("type", ""):<12}  {r["name"]}' for r in results)
+```
+
+`resolve_region()`'s ambiguous-region error changes from building `lines`
+inline to:
+
+```python
+raise click.ClickException(
+    f'Ambiguous region {query!r} — {len(results)} matches. Re-run with --region-id:\n'
+    + format_region_table(results)
+)
+```
+
+This is a pure extraction — the produced string is byte-for-byte identical
+to what `resolve_region()` already raises today. There is no existing test
+locking that string down (see Testing below); the new test this task adds
+is what proves the extraction didn't change it.
 
 ## Error handling
 
@@ -119,19 +158,37 @@ New tests in `tests/test_cli/test_regions.py` (existing file, existing
   `type=` query param per call), and merges results in order.
 - `--type urban_area` issues exactly 1 request with `type=urban_area`.
 - `--type all` issues exactly 1 request with no `type` param.
-- Output never contains a `boundary` field/column, in any format.
+- With neither `--format` nor `--output`: output matches
+  `format_region_table()`'s exact formatting (aligned columns, no header,
+  no `boundary`) — assert the literal expected string, not just substring
+  presence.
+- With `--format csv` (or `--output foo.json`, etc.): output never contains
+  a `boundary` field/column, in any format — this is the pre-existing
+  `write_output` path, unaffected by the table-default change.
 - Zero matches (all mocked calls return empty `data`) → non-zero exit code,
-  `"No regions found matching"` in output.
-- `--output`/`--format` behave identically to `regions list` (can reuse a
-  minimal version of that existing test's shape rather than re-deriving
-  `write_output` coverage from scratch — this command doesn't add any new
-  branch to `write_output` itself).
+  `"No regions found matching"` in output, regardless of whether `--format`
+  was given (the empty-check happens before the table-vs-write_output
+  branch).
+- `resolve_region()`'s ambiguous-region error currently has **no test
+  coverage** (confirmed: no test in the repo references "Ambiguous" or
+  triggers a multi-match `resolve_region()` call — `test_regions.py`'s
+  existing `test_two_region_flags_is_an_error` only covers the *other*
+  `resolve_region()` error, "Only one region filter may be specified at a
+  time"). Since this task extracts and reuses that error's exact formatting,
+  add the missing test now: mock a `regions/places/search/` response with 2+
+  results for a shortcut flag (e.g. `--urban`), assert the `ClickException`
+  message matches the full expected string (the `Ambiguous region ...`
+  prefix plus `format_region_table()`'s output) — this both closes a
+  pre-existing gap and protects the refactor from silently changing output.
 
 ## Docs
 
 - `docs/cli/data-export/regions.md`: new `## regions search` section
   (matching the existing `## regions list` / `## regions get` /
-  `## regions summaries` style), documenting all three modes with one
-  example each: default, `--type <specific>`, `--type all`.
+  `## regions summaries` style), documenting all three `--type` modes
+  (default, `--type <specific>`, `--type all`) and the table-by-default /
+  `--format`-or-`--output`-for-structured-data behavior, with at least one
+  example showing the default table output and one showing `--format csv`
+  or `--output`.
 - `docs/cli/troubleshooting.md`: no change (confirmed above — its existing
   example already matches the final default-mode behavior).
