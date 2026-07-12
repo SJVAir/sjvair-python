@@ -5,7 +5,7 @@ Commands for rendering air quality data as static map images or timelapse videos
 | Command | Produces |
 |---|---|
 | [Static maps](static.md) | A single static PNG, live or as of a historical timestamp |
-| [Timelapse videos](timelapse.md) | An MP4 assembled from a sequence of historical frames |
+| [Timelapse videos](timelapse.md) | An MP4 or GIF assembled from a sequence of historical frames |
 
 ```{toctree}
 :hidden:

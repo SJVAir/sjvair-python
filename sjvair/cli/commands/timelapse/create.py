@@ -13,6 +13,12 @@ from ...mapping import filter_by_location, resolve_area
 from ...utils import parse_bbox, parse_duration, parse_timestamp, resolve_region
 
 
+# GIF has no real inter-frame compression, so file size scales roughly linearly
+# with width * height * frame count. This is the point past which that product
+# tends to produce multi-hundred-MB files worth warning the user about.
+_GIF_WARN_PIXELS = 150_000_000
+
+
 def _frame_timestamps(start: datetime, end: datetime, interval: timedelta) -> Iterator[datetime]:
     ts = start
     while ts <= end:
@@ -58,7 +64,11 @@ def _frame_timestamps(start: datetime, end: datetime, interval: timedelta) -> It
 @click.option('--timestamp-label/--no-timestamp-label', 'show_timestamp', default=True)
 @click.option('--width', type=int, default=1600)
 @click.option('--height', type=int, default=1200)
-@click.option('--output', 'output_path', type=click.Path(path_type=Path), required=True)
+@click.option('--marker-size', type=int, default=220, help='Monitor marker size, in points^2 (matplotlib scatter `s`).')
+@click.option(
+    '--output', 'output_path', type=click.Path(path_type=Path), required=True,
+    help='Output path. Format is inferred from the extension: .gif or .mp4 (default for any other extension).',
+)
 @pass_ctx
 def timelapse_create(
     ctx: _ClientContext,
@@ -82,6 +92,7 @@ def timelapse_create(
     show_timestamp: bool,
     width: int,
     height: int,
+    marker_size: int,
     output_path: Path,
 ) -> None:
     """Render a sequence of historical map frames and assemble them into a video."""
@@ -113,6 +124,15 @@ def timelapse_create(
     frames_dir.mkdir(parents=True, exist_ok=True)
 
     timestamps = list(_frame_timestamps(start, end, interval))
+    is_gif = output_path.suffix.lower() == '.gif'
+    if is_gif and width * height * len(timestamps) > _GIF_WARN_PIXELS:
+        click.echo(
+            f'Warning: a {width}x{height} GIF with {len(timestamps)} frames can produce a very '
+            'large file (GIF has no real inter-frame compression). Consider a smaller '
+            '--width/--height, a longer --interval to reduce frame count, or an .mp4 output.',
+            err=True,
+        )
+
     for i, ts in enumerate(timestamps):
         frame_path = frames_dir / f'frame_{i:06d}.png'
         if frame_path.exists():
@@ -134,12 +154,22 @@ def timelapse_create(
             viewport=area.viewport,
             timestamp_label=ts.isoformat(sep=' ') if show_timestamp else None,
             show_legend=legend,
+            legend_label=meta['entries'][entry_type]['label'],
             width=width,
             height=height,
+            marker_size=marker_size,
         )
         frame_path.write_bytes(png_bytes)
         if not ctx.quiet:
             click.echo(f'[{i + 1}/{len(timestamps)}] {frame_path}')
+
+    if is_gif:
+        ffmpeg_args = [
+            '-filter_complex',
+            '[0:v] split [a][b];[a] palettegen [p];[b][p] paletteuse',
+        ]
+    else:
+        ffmpeg_args = ['-c:v', 'libx264', '-pix_fmt', 'yuv420p']
 
     subprocess.run(
         [
@@ -149,10 +179,7 @@ def timelapse_create(
             str(fps),
             '-i',
             str(frames_dir / 'frame_%06d.png'),
-            '-c:v',
-            'libx264',
-            '-pix_fmt',
-            'yuv420p',
+            *ffmpeg_args,
             str(output_path),
         ],
         check=True,

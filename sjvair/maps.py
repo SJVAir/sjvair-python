@@ -73,9 +73,11 @@ def render_frame(
     viewport: tuple[float, float, float, float],
     timestamp_label: str | None = None,
     show_legend: bool = True,
+    legend_label: str | None = None,
     width: int = 1600,
     height: int = 1200,
     dpi: int = 100,
+    marker_size: int = 220,
 ) -> bytes:
     """Render one map frame to PNG bytes: basemap, region outlines, monitor
     markers colored by AQI level, and optional legend/timestamp overlays."""
@@ -118,7 +120,7 @@ def render_frame(
         ax.scatter(
             point.x,
             point.y,
-            s=120,
+            s=marker_size,
             c=fill_color,
             edgecolors=_blend_hex(fill_color, '#000000', 0.2),
             marker=shape_for_monitor(monitor),
@@ -127,7 +129,7 @@ def render_frame(
         )
 
     if show_legend:
-        _draw_legend(ax, levels)
+        _draw_legend(ax, levels, legend_label)
     if timestamp_label:
         _draw_timestamp_label(ax, timestamp_label)
 
@@ -190,45 +192,84 @@ def _draw_timestamp_label(ax: Any, text: str) -> None:
     )
 
 
-def _draw_legend(ax: Any, levels: dict[str, Any]) -> None:
-    from matplotlib.patches import Rectangle  # ty: ignore[unresolved-import]
+def _draw_legend(ax: Any, levels: dict[str, Any], label: str | None = None) -> None:
+    import numpy as np  # ty: ignore[unresolved-import]
+    from matplotlib.colors import LinearSegmentedColormap  # ty: ignore[unresolved-import]
+    from matplotlib.patches import FancyBboxPatch  # ty: ignore[unresolved-import]
 
+    # Categories are spaced evenly rather than scaled to their true numeric
+    # range -- PM2.5 breakpoints span two orders of magnitude (Good is 0-9,
+    # Hazardous is 250+), so a linear value scale would squash the low end
+    # into an unreadable sliver and crowd its tick labels together.
     ordered = sorted(levels.values(), key=lambda lvl: lvl['range'][0])
-    x0, y0 = 0.02, 0.02
-    row_h = 0.035
+    n = len(ordered)
+    cmap = LinearSegmentedColormap.from_list(
+        'legend',
+        [(i / (n - 1) if n > 1 else 0.0, lvl['color']) for i, lvl in enumerate(ordered)],
+    )
 
+    x0, y0, w, h = 0.02, 0.02, 0.32, 0.12
     ax.add_patch(
-        Rectangle(
-            (x0 - 0.01, y0 - 0.01),
-            0.24,
-            row_h * len(ordered) + 0.02,
+        FancyBboxPatch(
+            (x0, y0),
+            w,
+            h,
+            boxstyle='round,pad=0,rounding_size=0.012',
             transform=ax.transAxes,
             facecolor='white',
             edgecolor='#88bbdd',
-            alpha=0.85,
+            linewidth=1.2,
+            alpha=0.9,
             zorder=9,
         )
     )
-    for i, level in enumerate(ordered):
-        y = y0 + i * row_h
-        ax.add_patch(
-            Rectangle(
-                (x0, y),
-                0.02,
-                row_h * 0.7,
-                transform=ax.transAxes,
-                facecolor=level['color'],
-                edgecolor='none',
-                zorder=10,
-            )
-        )
+
+    if label:
         ax.text(
-            x0 + 0.03,
-            y + row_h * 0.35,
-            level['label'],
+            x0 + w / 2,
+            y0 + h - 0.018,
+            label,
             transform=ax.transAxes,
-            fontsize=7,
-            va='center',
-            ha='left',
+            fontsize=9,
+            fontweight='bold',
+            ha='center',
+            va='top',
             zorder=10,
+        )
+
+    bar_x0, bar_w = x0 + 0.02, w - 0.04
+    bar_y0, bar_h = y0 + 0.048, 0.022
+    ax.imshow(
+        np.linspace(0, 1, 256).reshape(1, -1),
+        transform=ax.transAxes,
+        extent=(bar_x0, bar_x0 + bar_w, bar_y0, bar_y0 + bar_h),
+        aspect='auto',
+        cmap=cmap,
+        zorder=10,
+    )
+
+    for i, level in enumerate(ordered):
+        frac = i / (n - 1) if n > 1 else 0.0
+        tick_x = bar_x0 + frac * bar_w
+        ax.plot(
+            [tick_x, tick_x],
+            [bar_y0, bar_y0 - 0.006],
+            transform=ax.transAxes,
+            color='black',
+            linewidth=0.8,
+            zorder=11,
+        )
+        # The end labels are left/right-aligned to their tick instead of
+        # centered, so they fall inside the bar's width instead of
+        # overhanging into the box's side padding.
+        ha = 'left' if i == 0 else 'right' if i == n - 1 else 'center'
+        ax.text(
+            tick_x,
+            bar_y0 - 0.012,
+            str(int(level['range'][0])),
+            transform=ax.transAxes,
+            fontsize=9,
+            ha=ha,
+            va='top',
+            zorder=11,
         )

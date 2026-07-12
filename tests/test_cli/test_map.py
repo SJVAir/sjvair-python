@@ -198,6 +198,36 @@ def test_map_create_location_filters_client_side(tmp_path, monkeypatch):
 
 
 @rsps.activate
+def test_map_create_passes_entry_label_as_legend_label(tmp_path, monkeypatch):
+    rendered = {}
+
+    def fake_render_frame(**kwargs):
+        rendered['legend_label'] = kwargs['legend_label']
+        return b'PNGDATA'
+
+    monkeypatch.setattr('sjvair.maps.render_frame', fake_render_frame)
+
+    rsps.add(rsps.GET, BASE + 'regions/abc/', json=_region_response())
+    rsps.add(rsps.GET, BASE + 'monitors/meta/', json=META)
+    rsps.add(rsps.GET, BASE + 'monitors/pm25/at/', json={'data': [], 'has_next_page': False})
+
+    out = tmp_path / 'map.png'
+    result = CliRunner().invoke(
+        cli,
+        [
+            'map', 'create',
+            '--type', 'pm25',
+            '--region', 'abc',
+            '--timestamp', '2026-07-04T21:00:00',
+            '--output', str(out),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert rendered['legend_label'] == 'PM2.5'
+
+
+@rsps.activate
 def test_map_create_localizes_naive_timestamp_with_global_tz(tmp_path, monkeypatch):
     monkeypatch.setattr('sjvair.maps.render_frame', lambda **kwargs: b'PNGDATA')
 

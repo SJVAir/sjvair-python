@@ -45,6 +45,7 @@ def _region_response():
 
 def _fake_ffmpeg_run(cmd, check=True):
     Path(cmd[-1]).write_bytes(b'FAKEVIDEO')
+    _fake_ffmpeg_run.last_cmd = cmd
 
 
 @rsps.activate
@@ -89,6 +90,40 @@ def test_timelapse_create_renders_frames_and_calls_ffmpeg(tmp_path, monkeypatch)
         'frame_000002.png',
     ]
     assert out.read_bytes() == b'FAKEVIDEO'
+
+
+@rsps.activate
+def test_timelapse_create_passes_entry_label_as_legend_label(tmp_path, monkeypatch):
+    rendered = {}
+
+    def fake_render_frame(**kwargs):
+        rendered['legend_label'] = kwargs['legend_label']
+        return b'PNGDATA'
+
+    monkeypatch.setattr('sjvair.maps.render_frame', fake_render_frame)
+    monkeypatch.setattr('subprocess.run', _fake_ffmpeg_run)
+    monkeypatch.setattr('shutil.which', lambda name: '/usr/bin/ffmpeg')
+
+    rsps.add(rsps.GET, BASE + 'regions/abc/', json=_region_response())
+    rsps.add(rsps.GET, BASE + 'monitors/meta/', json=META)
+    rsps.add(rsps.GET, BASE + 'monitors/pm25/at/', json={'data': [], 'has_next_page': False})
+
+    result = CliRunner().invoke(
+        cli,
+        [
+            'timelapse', 'create',
+            '--type', 'pm25',
+            '--region', 'abc',
+            '--start', '2026-07-04T21:00:00',
+            '--end', '2026-07-04T21:00:00',
+            '--interval', '5m',
+            '--frames-dir', str(tmp_path / 'frames'),
+            '--output', str(tmp_path / 'out.mp4'),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert rendered['legend_label'] == 'PM2.5'
 
 
 @rsps.activate
@@ -167,6 +202,68 @@ def test_timelapse_create_skips_existing_frames(tmp_path, monkeypatch):
     assert result.exit_code == 0, result.output
     assert len(render_calls) == 0  # the only frame in range already existed
     assert (frames_dir / 'frame_000000.png').read_bytes() == b'EXISTING'
+
+
+@rsps.activate
+def test_timelapse_create_gif_uses_palette_filter(tmp_path, monkeypatch):
+    monkeypatch.setattr('sjvair.maps.render_frame', lambda **kwargs: b'PNGDATA')
+    monkeypatch.setattr('subprocess.run', _fake_ffmpeg_run)
+    monkeypatch.setattr('shutil.which', lambda name: '/usr/bin/ffmpeg')
+
+    rsps.add(rsps.GET, BASE + 'regions/abc/', json=_region_response())
+    rsps.add(rsps.GET, BASE + 'monitors/meta/', json=META)
+    rsps.add(rsps.GET, BASE + 'monitors/pm25/at/', json={'data': [], 'has_next_page': False})
+
+    out = tmp_path / 'out.gif'
+    result = CliRunner().invoke(
+        cli,
+        [
+            'timelapse', 'create',
+            '--type', 'pm25',
+            '--region', 'abc',
+            '--start', '2026-07-04T21:00:00',
+            '--end', '2026-07-04T21:00:00',
+            '--interval', '5m',
+            '--frames-dir', str(tmp_path / 'frames'),
+            '--output', str(out),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert '-filter_complex' in _fake_ffmpeg_run.last_cmd
+    assert '-c:v' not in _fake_ffmpeg_run.last_cmd
+    assert out.read_bytes() == b'FAKEVIDEO'
+
+
+@rsps.activate
+def test_timelapse_create_gif_warns_on_large_output(tmp_path, monkeypatch):
+    monkeypatch.setattr('sjvair.maps.render_frame', lambda **kwargs: b'PNGDATA')
+    monkeypatch.setattr('subprocess.run', _fake_ffmpeg_run)
+    monkeypatch.setattr('shutil.which', lambda name: '/usr/bin/ffmpeg')
+
+    rsps.add(rsps.GET, BASE + 'regions/abc/', json=_region_response())
+    rsps.add(rsps.GET, BASE + 'monitors/meta/', json=META)
+    rsps.add(rsps.GET, BASE + 'monitors/pm25/at/', json={'data': [], 'has_next_page': False})
+
+    result = CliRunner().invoke(
+        cli,
+        [
+            'timelapse', 'create',
+            '--type', 'pm25',
+            '--region', 'abc',
+            '--start', '2026-07-04T21:00:00',
+            '--end', '2026-07-04T21:00:00',
+            '--interval', '5m',
+            '--frames-dir', str(tmp_path / 'frames'),
+            '--width', '20000',
+            '--height', '20000',
+            '--output', str(tmp_path / 'out.gif'),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert 'Warning' in result.output
+    assert 'GIF' in result.output
 
 
 def test_timelapse_create_requires_ffmpeg(tmp_path, monkeypatch):

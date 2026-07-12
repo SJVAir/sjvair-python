@@ -42,6 +42,7 @@ from ...utils import parse_bbox, parse_timestamp, resolve_region
 @click.option('--timestamp-label/--no-timestamp-label', 'show_timestamp', default=True, help='Show/hide the burned-in timestamp.')
 @click.option('--width', type=int, default=1600)
 @click.option('--height', type=int, default=1200)
+@click.option('--marker-size', type=int, default=220, help='Monitor marker size, in points^2 (matplotlib scatter `s`).')
 @click.option('--output', 'output_path', type=click.Path(path_type=Path), required=True)
 @pass_ctx
 def map_create(
@@ -62,6 +63,7 @@ def map_create(
     show_timestamp: bool,
     width: int,
     height: int,
+    marker_size: int,
     output_path: Path,
 ) -> None:
     """Render a single static map image, live or as of a historical timestamp."""
@@ -104,8 +106,10 @@ def map_create(
         viewport=area.viewport,
         timestamp_label=label if show_timestamp else None,
         show_legend=legend,
+        legend_label=meta['entries'][entry_type]['label'],
         width=width,
         height=height,
+        marker_size=marker_size,
     )
     output_path.write_bytes(png_bytes)
     if not ctx.quiet:
