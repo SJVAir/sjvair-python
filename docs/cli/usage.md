@@ -54,7 +54,7 @@ Wherever a command accepts a location, these flags resolve to a region and scope
 
 ## Environment
 
-Every global flag has a matching environment variable, so you can set them once instead of repeating them on every command:
+Each of these client-configuration flags has a matching environment variable, so you can set them once instead of repeating them on every command:
 
 | Flag | Environment variable | Default |
 |---|---|---|
