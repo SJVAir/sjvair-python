@@ -120,7 +120,7 @@ def test_regions_search_empty_is_not_an_error(client):
 
 @pytest.mark.live
 def test_calenviroscreen_list_returns_tracts(client):
-    tracts = list(client.calenviroscreen.list(year=2020))
+    tracts = list(client.calenviroscreen4.list(year=2020))
     assert tracts, 'expected CES 4.0 tracts for 2020'
     assert 'tract' in tracts[0]
     assert 'ci_score' in tracts[0]
@@ -128,7 +128,7 @@ def test_calenviroscreen_list_returns_tracts(client):
 
 @pytest.mark.live
 def test_calenviroscreen_get_single_tract(client):
-    tract = client.calenviroscreen.get(year=2020, tract='06019000100')
+    tract = client.calenviroscreen4.get('06019000100', year=2020)
     assert tract['tract'] == '06019000100'
     assert 'ci_score' in tract
 
