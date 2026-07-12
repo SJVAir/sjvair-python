@@ -52,6 +52,57 @@ Wherever a command accepts a location, these flags resolve to a region and scope
 
 `--county` · `--city` · `--zip` · `--tract` (FIPS) · `--urban` (urban-area name) · `--region-id` (region ID)
 
+## Environment
+
+Every global flag has a matching environment variable, so you can set them once instead of repeating them on every command:
+
+| Flag | Environment variable | Default |
+|---|---|---|
+| `--base-url` | `SJVAIR_BASE_URL` | `https://www.sjvair.com/api/2.0/` |
+| `--api-key` | `SJVAIR_API_KEY` | *(none — public endpoints work without one)* |
+| `--timeout` | `SJVAIR_TIMEOUT` | `30` seconds |
+| `--tz` | `SJVAIR_TZ` | *(none — naive timestamps are treated as UTC)* |
+
+A `.env` file in the current directory is loaded automatically — no flag needed to enable it. This is the easiest way to stop passing `--tz` on every [timestamp-bearing command](#timestamps):
+
+```bash
+# .env
+SJVAIR_TZ=America/Los_Angeles
+```
+
+```bash
+# --tz is no longer needed -- SJVAIR_TZ from .env applies automatically
+sjvair map create --type pm25 --county Fresno --timestamp "2026-07-04 20:30:00" --output fresno.png
+```
+
+## Shell completion
+
+`sjvair` supports tab completion for commands and options, provided by the underlying [Click](https://click.palletsprojects.com/) framework — nothing extra to install beyond `sjvair` itself.
+
+::::{tabs}
+
+:::{code-tab} bash Bash
+_SJVAIR_COMPLETE=bash_source sjvair > ~/.sjvair-complete.bash
+echo '. ~/.sjvair-complete.bash' >> ~/.bashrc
+:::
+
+:::{code-tab} bash Zsh
+_SJVAIR_COMPLETE=zsh_source sjvair > ~/.sjvair-complete.zsh
+echo '. ~/.sjvair-complete.zsh' >> ~/.zshrc
+:::
+
+:::{code-tab} fish Fish
+_SJVAIR_COMPLETE=fish_source sjvair > ~/.config/fish/completions/sjvair.fish
+:::
+
+::::
+
+Restart your shell (or re-source the rc file) afterward. To try it out first without installing anything:
+
+```bash
+eval "$(_SJVAIR_COMPLETE=bash_source sjvair)"
+```
+
 ## Entry types
 
 Entry types are lowercase slugs: `pm25`, `pm10`, `pm100`, `o3`, `no2`, `so2`, `co`, `co2`, `particulates`, `temperature`, `humidity`, `pressure`.
