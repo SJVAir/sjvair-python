@@ -85,7 +85,7 @@ Both keep the existing filter passthrough convention (`region_id`, `dac_sb535`,
 `sjvair calenviroscreen` is replaced by two commands:
 
 ```bash
-sjvair calenviroscreen4 --year 2020 --county Fresno
+sjvair calenviroscreen4 --year 2010 --county Fresno
 sjvair calenviroscreen4 --county Fresno              # year omitted, server defaults to 2020
 sjvair calenviroscreen5 --tract 06019000100 --format yaml
 ```
@@ -116,7 +116,7 @@ class CalHeatScoreResource(BaseResource):
         """
         return self._paginate(self.PATH, params or None)
 
-    def by_zip(self, zip_code: str, **params: Any) -> Iterator[dict[str, Any]]:
+    def zip_code(self, zip_code: str, **params: Any) -> Iterator[dict[str, Any]]:
         """Iterate all stored CalHeatScore rows (history + forecast) for one ZIP code, newest first.
 
         Accepts the same ``date``/``score`` filters as :meth:`list` to narrow the range.
@@ -124,7 +124,7 @@ class CalHeatScoreResource(BaseResource):
         return self._paginate(f'{self.PATH}{zip_code}/', params or None)
 ```
 
-`list()` and `by_zip()` return multiple rows in all cases (there's no
+`list()` and `zip_code()` return multiple rows in all cases (there's no
 single-object "detail" shape for this dataset), so neither is named `get()` —
 that name is reserved elsewhere in this client for single-dict lookups.
 
@@ -138,7 +138,7 @@ sjvair calheatscore --zip 93728 --date 2026-07-13  # one ZIP, one date
 ```
 
 Implementation: `--zip` alone or combined with `--date` calls
-`client.calheatscore.by_zip(zip_code, date=...)`; `--date` alone or no flags
+`client.calheatscore.zip_code(zip_code, date=...)`; `--date` alone or no flags
 calls `client.calheatscore.list(date=...)`. No client-side filtering needed —
 the server now handles the combined zip+date case directly.
 
@@ -174,7 +174,7 @@ Follow the existing `responses`-mocked pattern in `tests/test_resources/` and
 - `tests/test_resources/test_calenviroscreen.py` — update existing CES4 tests
   for the new query-param URL shape and `client.calenviroscreen4`; add CES5
   tests for `client.calenviroscreen5`.
-- `tests/test_resources/test_calheatscore.py` (new) — `list()` and `by_zip()`,
+- `tests/test_resources/test_calheatscore.py` (new) — `list()` and `zip_code()`,
   including the combined zip+date case.
 - `tests/test_cli/` — update/add CLI tests for `calenviroscreen4`,
   `calenviroscreen5`, and `calheatscore`, covering the flag combinations above.
