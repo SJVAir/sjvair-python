@@ -60,6 +60,34 @@ sjvair --tz America/Los_Angeles timelapse create `
 
 ::::
 
+By default frames render one at a time. Pass `--workers N` to render up to `N` frames concurrently — each worker is a separate process (not a thread; matplotlib rendering isn't thread-safe), so this speeds up the actual bottleneck for long timelapses — per-frame basemap-tile fetching and rendering — not the monitor-data API calls, which are already fast:
+
+::::{tabs}
+
+:::{code-tab} bash
+sjvair --tz America/Los_Angeles timelapse create \
+  --type pm25 \
+  --urban Fresno \
+  --start "2026-07-04 20:00:00" \
+  --end "2026-07-05 02:00:00" \
+  --interval 5m \
+  --workers 4 \
+  --output fresno-fireworks.mp4
+:::
+
+:::{code-tab} powershell
+sjvair --tz America/Los_Angeles timelapse create `
+  --type pm25 `
+  --urban Fresno `
+  --start "2026-07-04 20:00:00" `
+  --end "2026-07-05 02:00:00" `
+  --interval 5m `
+  --workers 4 `
+  --output fresno-fireworks.mp4
+:::
+
+::::
+
 ## Example: Fresno (MP4)
 
 A full 24 hours across the 4th of July, over the Fresno urban area, outdoor monitors only, in 5-minute increments — watch the fireworks show up as a wave of Moderate/Unhealthy readings through the evening that clears out by morning:
