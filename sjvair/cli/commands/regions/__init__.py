@@ -4,6 +4,7 @@ import click
 
 from .get import regions_get
 from .list import regions_list
+from .search import regions_search
 from .summaries import regions_summaries
 
 
@@ -13,5 +14,6 @@ def regions() -> None:
 
 
 regions.add_command(regions_list, 'list')
+regions.add_command(regions_search, 'search')
 regions.add_command(regions_get, 'get')
 regions.add_command(regions_summaries, 'summaries')
