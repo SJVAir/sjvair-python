@@ -176,3 +176,7 @@ cython_debug/
 
 # MkDocs build output
 site/
+
+# git worktrees and subagent-driven-development scratch state
+.worktrees/
+.superpowers/
