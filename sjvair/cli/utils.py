@@ -86,6 +86,15 @@ def format_region_table(results: list[dict[str, Any]]) -> str:
     return '\n'.join(f'  {r["id"]:36s}  {r.get("type", ""):<12}  {r["name"]}' for r in results)
 
 
+def resolve_entry_meta(meta: dict[str, Any], entry_type: str) -> dict[str, Any]:
+    """Look up ``entry_type`` in a ``monitors.meta()`` response, or raise a clean CLI error listing valid types."""
+    entries = meta['entries']
+    try:
+        return entries[entry_type]
+    except KeyError:
+        raise click.ClickException(f'Unknown --type {entry_type!r}. Valid: {", ".join(sorted(entries))}')
+
+
 def resolve_region(
     client: SJVAirClient,
     county: str | None = None,
@@ -153,7 +162,6 @@ def write_output(
         import io
 
         headers, rows = format_output(data, 'tabular')
-        rows = list(rows)
         if output is None:
             buf = io.StringIO()
             w = csv_mod.writer(buf)

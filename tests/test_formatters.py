@@ -27,6 +27,20 @@ def test_tabular_empty():
     assert list(rows) == []
 
 
+def test_tabular_only_pulls_first_record_eagerly():
+    pulled = []
+
+    def gen():
+        for record in SAMPLE:
+            pulled.append(record["id"])
+            yield record
+
+    headers, rows = format_output(gen(), "tabular")
+    assert pulled == ["1"]  # headers derived from the first record only
+    assert list(rows) == [["1", "A", 10.0], ["2", "B", 20.0]]
+    assert pulled == ["1", "2"]  # the rest streamed lazily, on iteration
+
+
 def test_invalid_format_raises():
     with pytest.raises(ValueError, match="Unknown format"):
         format_output(iter(SAMPLE), "xml")
@@ -52,3 +66,24 @@ def test_geodataframe_missing_deps_raises_import_error():
     except ImportError:
         with pytest.raises(ImportError, match="sjvair\\[maps\\]"):
             format_output(iter(SAMPLE), "geodataframe")
+
+
+def test_dataframe_produces_populated_dataframe():
+    pytest.importorskip("pandas")
+    pytest.importorskip("pyarrow")
+    df = format_output(iter(SAMPLE), "dataframe")
+    assert list(df["id"]) == ["1", "2"]
+    assert list(df["name"]) == ["A", "B"]
+    assert list(df["val"]) == [10.0, 20.0]
+
+
+def test_geodataframe_parses_geometry_column():
+    pytest.importorskip("pandas")
+    pytest.importorskip("pyarrow")
+    pytest.importorskip("geopandas")
+    pytest.importorskip("shapely")
+    from shapely.geometry import Point
+
+    rows = [{"id": "1", "geometry": {"type": "Point", "coordinates": [-119.77, 36.75]}}]
+    gdf = format_output(iter(rows), "geodataframe")
+    assert gdf["geometry"].iloc[0] == Point(-119.77, 36.75)

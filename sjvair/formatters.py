@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 from typing import Any, Iterable
 
 VALID_FORMATS = ('objects', 'tabular', 'dataframe', 'geodataframe')
@@ -25,11 +26,17 @@ def format_output(data: Iterable[dict[str, Any]], fmt: str) -> Any:
         return data
 
     if fmt == 'tabular':
-        rows = list(data)
-        if not rows:
+        # Headers come from the first record's keys, so only that one record
+        # needs to be pulled eagerly -- the rest stream lazily rather than
+        # fully materializing a potentially large result set in memory.
+        it = iter(data)
+        try:
+            first = next(it)
+        except StopIteration:
             return [], iter([])
-        headers = list(rows[0].keys())
-        return headers, ([row.get(h) for h in headers] for row in rows)
+        headers = list(first.keys())
+        rows = ([row.get(h) for h in headers] for row in itertools.chain([first], it))
+        return headers, rows
 
     # dataframe / geodataframe
     try:
@@ -38,7 +45,7 @@ def format_output(data: Iterable[dict[str, Any]], fmt: str) -> Any:
     except ImportError:
         raise ImportError(f'format={fmt!r} requires optional dependencies: pip install sjvair[maps]')
     rows = list(data)
-    df = pd.DataFrame(rows, dtype_backend='pyarrow')
+    df = pd.DataFrame(rows).convert_dtypes(dtype_backend='pyarrow')
     if fmt == 'dataframe':
         return df
     try:
