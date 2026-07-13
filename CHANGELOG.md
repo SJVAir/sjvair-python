@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   filter passthrough — the backend now honors `?device=` on these endpoints.
 - **CLI**: `--device` flag on `sjvair monitors closest` and
   `sjvair monitors current`.
+- **Client**: `client.forecasts` — SJVAPCD daily air quality forecasts by
+  SJV county zone (`list(**params)`, `get(forecast_id)`).
+- **CLI**: `sjvair forecasts` — SJVAPCD forecast export, with `--date`,
+  `--issued-date`, and the standard region flags.
 
 ### Changed
 

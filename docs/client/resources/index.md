@@ -11,6 +11,7 @@ Each resource on `SJVAirClient` wraps one part of the SJVAir API.
 | [Facility Emissions](ceidars.md) | `client.ceidars` |
 | [Fire & Smoke](hms.md) | `client.hms` |
 | [Pesticides](pesticides.md) | `client.pesticides` |
+| [Forecasts](forecasts.md) | `client.forecasts` |
 
 ```{toctree}
 :hidden:
@@ -22,4 +23,5 @@ CalHeatScore <calheatscore>
 Facility Emissions <ceidars>
 Fire & Smoke <hms>
 Pesticides <pesticides>
+Forecasts <forecasts>
 ```

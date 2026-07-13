@@ -35,6 +35,9 @@ Auto-generated from docstrings.
 
 .. autoclass:: sjvair.resources.calheatscore.CalHeatScoreResource
    :members:
+
+.. autoclass:: sjvair.resources.forecasts.ForecastsResource
+   :members:
 ```
 
 ## Maps
