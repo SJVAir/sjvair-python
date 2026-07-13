@@ -118,14 +118,14 @@ class MonitorsResource(BaseResource):
 
         Pass ``device`` to filter by device type (e.g. ``device='CIMIS'``).
         """
-        return self._client.get(f'monitors/{entry_type}/closest/', {'lat': lat, 'lon': lon, **params})['data']
+        return self._client.get(f'{self.PATH}{entry_type}/closest/', {'lat': lat, 'lon': lon, **params})['data']
 
     def current(self, entry_type: str, **params: Any) -> Iterator[dict[str, Any]]:
         """Iterate all active monitors with their most recent entry for the given type.
 
         Pass ``device`` to filter by device type (e.g. ``device='CIMIS'``).
         """
-        return self._paginate(f'monitors/{entry_type}/current/', params or None)
+        return self._paginate(f'{self.PATH}{entry_type}/current/', params or None)
 
     def current_at(
         self,

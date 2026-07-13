@@ -10,7 +10,7 @@ import click
 
 from ...main import _ClientContext, pass_ctx
 from ...mapping import filter_by_location, resolve_area
-from ...utils import parse_bbox, parse_duration, parse_timestamp, resolve_region
+from ...utils import parse_bbox, parse_duration, parse_timestamp, resolve_entry_meta, resolve_region
 from .parallel import render_frames_parallel
 
 # GIF has no real inter-frame compression, so file size scales roughly linearly
@@ -136,7 +136,8 @@ def timelapse_create(
     area = resolve_area(ctx.client, regions, buffer, bbox, scope)
 
     meta = ctx.client.monitors.meta()
-    levels = meta['entries'][entry_type]['levels']
+    entry_meta = resolve_entry_meta(meta, entry_type)
+    levels = entry_meta['levels']
 
     frames_dir = frames_dir or output_path.with_suffix('.frames')
     frames_dir.mkdir(parents=True, exist_ok=True)
@@ -173,7 +174,7 @@ def timelapse_create(
                 viewport=area.viewport,
                 timestamp_label=ts.isoformat(sep=' ') if show_timestamp else None,
                 show_legend=legend,
-                legend_label=meta['entries'][entry_type]['label'],
+                legend_label=entry_meta['label'],
                 width=width,
                 height=height,
                 marker_size=marker_size,
@@ -194,7 +195,7 @@ def timelapse_create(
             frames_dir=frames_dir,
             show_timestamp=show_timestamp,
             legend=legend,
-            legend_label=meta['entries'][entry_type]['label'],
+            legend_label=entry_meta['label'],
             width=width,
             height=height,
             marker_size=marker_size,

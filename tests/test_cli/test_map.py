@@ -273,3 +273,27 @@ def test_map_create_refuses_to_overwrite_without_force(tmp_path):
     )
     assert result.exit_code != 0
     assert 'already exists' in result.output
+
+
+@rsps.activate
+def test_map_create_unknown_type_raises_clean_error(tmp_path):
+    rsps.add(rsps.GET, BASE + 'monitors/meta/', json=META)
+    out = tmp_path / 'map.png'
+    result = CliRunner().invoke(
+        cli,
+        [
+            'map',
+            'create',
+            '--type',
+            'not-a-real-type',
+            '--bbox',
+            '-120,36,-119,37',
+            '--scope',
+            'viewport',
+            '--output',
+            str(out),
+        ],
+    )
+    assert result.exit_code != 0
+    assert "Unknown --type 'not-a-real-type'" in result.output
+    assert 'pm25' in result.output

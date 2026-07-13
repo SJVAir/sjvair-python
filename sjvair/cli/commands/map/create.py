@@ -6,7 +6,7 @@ import click
 
 from ...main import _ClientContext, pass_ctx
 from ...mapping import filter_by_location, filter_monitors, resolve_area
-from ...utils import parse_bbox, parse_timestamp, resolve_region
+from ...utils import parse_bbox, parse_timestamp, resolve_entry_meta, resolve_region
 
 
 @click.command('create')
@@ -79,7 +79,8 @@ def map_create(
     area = resolve_area(ctx.client, regions, buffer, bbox, scope)
 
     meta = ctx.client.monitors.meta()
-    levels = meta['entries'][entry_type]['levels']
+    entry_meta = resolve_entry_meta(meta, entry_type)
+    levels = entry_meta['levels']
 
     if timestamp:
         ts = parse_timestamp(timestamp, ctx.tz)
@@ -105,7 +106,7 @@ def map_create(
         viewport=area.viewport,
         timestamp_label=label if show_timestamp else None,
         show_legend=legend,
-        legend_label=meta['entries'][entry_type]['label'],
+        legend_label=entry_meta['label'],
         width=width,
         height=height,
         marker_size=marker_size,
