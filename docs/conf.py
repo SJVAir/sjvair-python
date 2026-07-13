@@ -135,7 +135,10 @@ templates_path = ['_templates']
 
 html_static_path = ['_static']
 html_css_files = ['extra.css']
-html_js_files = ['openapi-dropdown-links.js']
+html_js_files = [
+    'openapi-dropdown-links.js',
+    ('https://kit.fontawesome.com/4b80128965.js', {'crossorigin': 'anonymous'}),
+]
 html_favicon = '_static/favicon/favicon.ico'
 
 html_context = {
