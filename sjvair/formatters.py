@@ -12,7 +12,7 @@ def format_output(data: Iterable[dict[str, Any]], fmt: str) -> Any:
         data: Iterable of record dicts as returned by any resource method.
         fmt: One of:
 
-            - ``'objects'`` — returns the iterator as-is (no conversion)
+            - ``'objects'`` — returns the iterable as-is (no conversion)
             - ``'tabular'`` — returns ``(headers: list[str], rows: Iterator[list])``
             - ``'dataframe'`` — returns a ``pandas.DataFrame`` (requires ``sjvair[maps]``)
             - ``'geodataframe'`` — returns a ``geopandas.GeoDataFrame`` with geometry parsed

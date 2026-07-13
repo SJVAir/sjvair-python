@@ -26,7 +26,7 @@ with SJVAirClient() as client:
 | Method | Signature |
 |---|---|
 | `products()` | Product metadata: label, units, legend color stops. Excludes `cldo4` (QA-only). |
-| `granules(product, **params)` | Iterate granules for one product. Defaults to today (America/Los_Angeles). |
+| `granules(product, **params)` | Iterate granules for one product. Defaults to today (America/Los_Angeles), falling back to yesterday if it's before noon and today's data isn't ready. |
 | `latest(product)` | The single most recent granule for one product. |
 | `point(product, latitude, longitude, start=None, end=None)` | Hourly point-value series at a coordinate. |
 | `region(product, region_id, start=None, end=None)` | Hourly zonal-stats series over a region boundary. |
@@ -57,6 +57,6 @@ series = client.tempo.region('no2', region_id='r6phe')
 
 Each `region()` row is `{timestamp, is_final, version, count, sum, mean, stddev, min, max}` — zonal stats over the pixels inside the region's boundary for that hour.
 
-`granules()` filters happen server-side: `date`, `timestamp`/`timestamp__lt`/`__lte`/`__gt`/`__gte`, `is_final`, `version`/`version__iexact`. Omitting `date`/`timestamp` defaults to today.
+`granules()` filters happen server-side: `date`, `timestamp`/`timestamp__lt`/`__lte`/`__gt`/`__gte`, `is_final`, `version`/`version__iexact`. Omitting `date`/`timestamp` defaults to today (America/Los_Angeles), falling back to yesterday if it's before noon and today's data isn't ready yet.
 
 `point()`/`region()` accept `start`/`end` as ISO 8601 timestamps (max 90-day range) — omit both to default to today's available granules.

@@ -45,7 +45,7 @@ class TempoResource(BaseResource):
         start: str | None = None,
         end: str | None = None,
     ) -> list[dict[str, Any]]:
-        """Iterate an hourly point-value series for one product at a coordinate.
+        """Get an hourly point-value series for one product at a coordinate.
 
         ``start``/``end`` are ISO 8601 timestamps; omit both to default to
         today's available granules. Max range is 90 days.
@@ -64,7 +64,7 @@ class TempoResource(BaseResource):
         start: str | None = None,
         end: str | None = None,
     ) -> list[dict[str, Any]]:
-        """Iterate an hourly zonal-stats series for one product over a region boundary.
+        """Get an hourly zonal-stats series for one product over a region boundary.
 
         Same ``start``/``end`` semantics as :meth:`point`.
         """
