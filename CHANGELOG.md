@@ -31,6 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `point(product, latitude, longitude, start=None, end=None)`,
   `region(product, region_id, start=None, end=None)`).
 - **CLI**: `sjvair tempo --type {products,granules,latest,point,region}`.
+- **Client**: `ClientError` — raised on non-retryable HTTP 4xx responses
+  other than 404/429 (which keep their own `NotFound`/`RateLimited` types),
+  instead of leaking a raw `requests.HTTPError`.
+- **CLI**: `--workers` flag on `sjvair monitors summaries` — fetches each
+  monitor's summaries concurrently instead of one at a time.
 
 ### Changed
 
@@ -44,6 +49,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking**: `sjvair calenviroscreen` is replaced by
   `sjvair calenviroscreen4` and `sjvair calenviroscreen5`. `--year` is now
   optional on `calenviroscreen4` (was required).
+
+### Fixed
+
+- `format_output(..., 'dataframe')`/`'geodataframe'` (and the CLI's
+  `--format dataframe`/`--format geodataframe`, once wired up) always raised
+  `TypeError` — `dtype_backend` isn't a valid `pandas.DataFrame()` constructor
+  argument. Now applied via `.convert_dtypes(dtype_backend=...)` instead.
+- `SJVAirClient.get()` didn't retry transient network failures
+  (`ConnectionError`/`Timeout`) at all — only HTTP 429/5xx responses were
+  retried. Network errors now retry with the same exponential backoff as
+  5xx, raising `ServerError` once exhausted.
+- Concurrent 429 responses could race in `CooldownGate`: a thread with a
+  shorter `Retry-After` could reopen the gate before a concurrently-running,
+  longer cooldown had actually finished. Cooldowns now only ever extend the
+  shared deadline, never shorten it.
+- `map create`/`timelapse create` raised a raw `KeyError` for an unknown
+  `--type` instead of a clear error listing valid entry types.
 
 ## [0.1.0a3] - 2026-07-09
 
