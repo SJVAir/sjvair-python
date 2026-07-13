@@ -8,7 +8,7 @@ from typing import Any
 
 import requests
 
-from .exceptions import NotFound, RateLimited, ServerError
+from .exceptions import ClientError, NotFound, RateLimited, ServerError
 
 log = logging.getLogger(__name__)
 
@@ -17,18 +17,36 @@ DEFAULT_TIMEOUT = 30
 DEFAULT_MAX_RETRIES = 5
 DEFAULT_MAX_CONNECTIONS = 4
 
+# Transient network-level failures (as opposed to HTTP error responses) that
+# are worth retrying the same as a 5xx -- a connection reset or timeout is
+# usually as recoverable as a 503.
+RETRYABLE_EXCEPTIONS = (requests.exceptions.ConnectionError, requests.exceptions.Timeout)
+
 
 class CooldownGate:
-    """One thread triggers a cooldown; all other threads block until it clears."""
+    """One thread triggers a cooldown; all other threads block until it clears.
+
+    Concurrent cooldowns only ever extend the shared deadline, never shorten
+    it -- a thread that requests a shorter cooldown than one already in
+    progress waits for the longer one to finish rather than reopening the
+    gate early.
+    """
 
     def __init__(self) -> None:
         self._event = threading.Event()
         self._event.set()
+        self._lock = threading.Lock()
+        self._deadline = 0.0
 
     def cooldown(self, seconds: float) -> None:
-        self._event.clear()
+        with self._lock:
+            self._event.clear()
+            self._deadline = max(self._deadline, time.monotonic() + seconds)
+            my_deadline = self._deadline
         time.sleep(seconds)
-        self._event.set()
+        with self._lock:
+            if my_deadline == self._deadline and time.monotonic() >= self._deadline:
+                self._event.set()
 
     def wait(self) -> None:
         self._event.wait()
@@ -104,11 +122,14 @@ class SJVAirClient:
     def get(self, path: str, params: dict[str, Any] | None = None) -> Any:
         """GET ``path`` relative to ``base_url``, with retry and cooldown.
 
-        Retries on 5xx up to ``max_retries`` times with exponential backoff.
-        On 429, triggers a shared cooldown that blocks all threads until the
-        wait expires. Raises :class:`~sjvair.exceptions.NotFound` on 404,
+        Retries on 5xx and transient network errors (connection/timeout) up
+        to ``max_retries`` times with exponential backoff. On 429, triggers a
+        shared cooldown that blocks all threads until the wait expires.
+        Raises :class:`~sjvair.exceptions.NotFound` on 404,
         :class:`~sjvair.exceptions.RateLimited` after exhausting retries on 429,
-        and :class:`~sjvair.exceptions.ServerError` after exhausting retries on 5xx.
+        :class:`~sjvair.exceptions.ServerError` after exhausting retries on 5xx
+        or a persistent network error, and :class:`~sjvair.exceptions.ClientError`
+        on other non-retryable 4xx responses.
         """
         url = self.base_url + path.lstrip('/')
         self._cooldown.wait()
@@ -127,6 +148,8 @@ class SJVAirClient:
                         )
                     if r.status_code in self.RETRYABLE:
                         raise ServerError(f'HTTP {r.status_code}: {url}')
+                    if 400 <= r.status_code < 500:
+                        raise ClientError(f'HTTP {r.status_code}: {url}', status_code=r.status_code)
                     r.raise_for_status()
                     return r.json()
                 except RateLimited as exc:
@@ -142,6 +165,13 @@ class SJVAirClient:
                         raise
                     delay = float(2**attempt)
                     log.warning('Server error attempt %d; retry in %.1fs', attempt + 1, delay)
+                    time.sleep(delay)
+                except RETRYABLE_EXCEPTIONS as exc:
+                    last_exc = ServerError(f'Network error: {exc}')
+                    if attempt >= self.max_retries:
+                        raise last_exc from exc
+                    delay = float(2**attempt)
+                    log.warning('Network error attempt %d; retry in %.1fs', attempt + 1, delay)
                     time.sleep(delay)
             raise last_exc
 

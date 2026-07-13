@@ -19,3 +19,11 @@ class RateLimited(SJVAirError):
 
 class ServerError(SJVAirError):
     """Raised on HTTP 5xx responses. The client retries these automatically."""
+
+
+class ClientError(SJVAirError):
+    """Raised on non-retryable HTTP 4xx responses other than 404/429, which have their own types."""
+
+    def __init__(self, message: str = '', *, status_code: int | None = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
