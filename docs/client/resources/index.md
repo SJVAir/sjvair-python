@@ -6,7 +6,7 @@ Each resource on `SJVAirClient` wraps one part of the SJVAir API.
 |---|---|
 | [Air Monitors](monitors.md) | `client.monitors` |
 | [Regions](regions.md) | `client.regions` |
-| [CalEnviroScreen](calenviroscreen.md) | `client.calenviroscreen4` / `client.calenviroscreen5` |
+| [CalEnviroScreen](calenviroscreen.md) | `client.calenviroscreen5` / `client.calenviroscreen4` |
 | [CalHeatScore](calheatscore.md) | `client.calheatscore` |
 | [Facility Emissions](ceidars.md) | `client.ceidars` |
 | [Fire & Smoke](hms.md) | `client.hms` |

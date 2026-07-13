@@ -37,8 +37,8 @@ class CooldownGate:
 class SJVAirClient:
     """HTTP client for the SJVAir API.
 
-    All resource objects (``monitors``, ``regions``, ``calenviroscreen4``,
-    ``calenviroscreen5``, ``ceidars``, ``hms``, ``pesticides``,
+    All resource objects (``monitors``, ``regions``, ``calenviroscreen5``,
+    ``calenviroscreen4``, ``ceidars``, ``hms``, ``pesticides``,
     ``calheatscore``) are attached as attributes and share this client's
     session, retry logic, and cooldown gate.
 
@@ -84,8 +84,8 @@ class SJVAirClient:
 
         self.monitors = MonitorsResource(self)
         self.regions = RegionsResource(self)
-        self.calenviroscreen4 = CalEnviroScreen4Resource(self)
         self.calenviroscreen5 = CalEnviroScreen5Resource(self)
+        self.calenviroscreen4 = CalEnviroScreen4Resource(self)
         self.ceidars = CEIDARSResource(self)
         self.hms = HMSResource(self)
         self.pesticides = PesticidesResource(self)

@@ -18,10 +18,10 @@ Auto-generated from docstrings.
 .. autoclass:: sjvair.resources.regions.RegionsResource
    :members:
 
-.. autoclass:: sjvair.resources.calenviroscreen.CalEnviroScreen4Resource
+.. autoclass:: sjvair.resources.calenviroscreen.CalEnviroScreen5Resource
    :members:
 
-.. autoclass:: sjvair.resources.calenviroscreen.CalEnviroScreen5Resource
+.. autoclass:: sjvair.resources.calenviroscreen.CalEnviroScreen4Resource
    :members:
 
 .. autoclass:: sjvair.resources.ceidars.CEIDARSResource
