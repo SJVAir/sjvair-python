@@ -56,7 +56,7 @@ class TempoResource(BaseResource):
         """
         return self._paginate(f'{self.PATH}{product}/granules/', params or None)
 
-    def latest_granule(self, product: str) -> dict[str, Any]:
+    def latest(self, product: str) -> dict[str, Any]:
         """Get the single most recent granule for one product."""
         return self._client.get(f'{self.PATH}{product}/granules/latest/')['data']
 
@@ -141,7 +141,7 @@ same wiring pattern as CalHeatScore.
 Same `responses`-mocked pattern as the rest of this client. Cover, at
 minimum: `products()`, `granules()` (with and without filters), the
 today-default behavior is server-side only (client sends no default date),
-`latest_granule()`, `point()` (with/without start/end, latitude/longitude
+`latest()`, `point()` (with/without start/end, latitude/longitude
 sent correctly), `region()` (region_id in the URL path, start/end as query
 params). CLI: all five `--type` values, plus the `--type point` missing
 lat/lon error and `--type region` missing-region error.
