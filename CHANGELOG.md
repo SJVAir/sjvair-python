@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   heat-risk scores (`list(**params)`, `zipcode(zipcode, **params)`).
 - **CLI**: `sjvair calheatscore` — CalHeatScore export, with `--zip` and
   `--date` flags.
+- **Client**: `client.monitors.closest()`, `.current()`, and `.current_at()`
+  now accept `**params` (e.g. `device='CIMIS'`), matching `list()`'s existing
+  filter passthrough — the backend now honors `?device=` on these endpoints.
+- **CLI**: `--device` flag on `sjvair monitors closest` and
+  `sjvair monitors current`.
 
 ### Changed
 

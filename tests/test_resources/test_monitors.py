@@ -52,9 +52,25 @@ def test_monitors_closest():
 
 
 @rsps.activate
+def test_monitors_closest_with_device_filter():
+    rsps.add(rsps.GET, BASE + 'monitors/pm25/closest/', json={
+        'data': [{'id': 'abc', 'distance': 100.0}], 'has_next_page': False
+    })
+    SJVAirClient().monitors.closest('pm25', 36.7468, -119.7726, device='CIMIS')
+    assert 'device=CIMIS' in rsps.calls[0].request.url
+
+
+@rsps.activate
 def test_monitors_current():
     rsps.add(rsps.GET, BASE + 'monitors/pm25/current/', json={'data': [{'id': 'a'}], 'has_next_page': False})
     assert list(SJVAirClient().monitors.current('pm25')) == [{'id': 'a'}]
+
+
+@rsps.activate
+def test_monitors_current_with_device_filter():
+    rsps.add(rsps.GET, BASE + 'monitors/pm25/current/', json={'data': [], 'has_next_page': False})
+    list(SJVAirClient().monitors.current('pm25', device='AQLite'))
+    assert 'device=AQLite' in rsps.calls[0].request.url
 
 
 @rsps.activate
@@ -80,6 +96,13 @@ def test_monitors_current_at_with_region_and_bbox():
     assert 'region=abc' in request.url
     assert 'region=def' in request.url
     assert 'bbox=-120.5%2C36.0%2C-119.5%2C37.0' in request.url
+
+
+@rsps.activate
+def test_monitors_current_at_with_device_filter():
+    rsps.add(rsps.GET, BASE + 'monitors/pm25/at/', json={'data': [], 'has_next_page': False})
+    list(SJVAirClient().monitors.current_at('pm25', '2026-07-04T21:00:00', device='AirGradient'))
+    assert 'device=AirGradient' in rsps.calls[0].request.url
 
 
 @rsps.activate

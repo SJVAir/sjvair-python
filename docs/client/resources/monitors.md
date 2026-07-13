@@ -38,9 +38,9 @@ with SJVAirClient() as client:
 | `entries(monitor_id, entry_type, **params)` | Paginated entry records for one monitor. |
 | `export(monitor_id, start_date, end_date, scope)` | Bulk export up to 180 days at once. |
 | `summaries(monitor_id, entry_type, resolution, start_date, end_date)` | Aggregated summaries at hourly / daily / monthly / quarterly / seasonal / yearly resolution. Rows are tagged with `monitor_id`. |
-| `closest(entry_type, lat, lon)` | Up to 3 nearest active monitors with distance and latest entry. |
-| `current(entry_type)` | All active monitors with their most recent entry. |
-| `current_at(entry_type, timestamp, region=None, bbox=None)` | Like `current()`, but as of a historical timestamp. Optionally scope to one or more region IDs or a `(west, south, east, north)` bbox. |
+| `closest(entry_type, lat, lon, **params)` | Up to 3 nearest active monitors with distance and latest entry. Pass `device` to filter by device type. |
+| `current(entry_type, **params)` | All active monitors with their most recent entry. Pass `device` to filter by device type. |
+| `current_at(entry_type, timestamp, region=None, bbox=None, **params)` | Like `current()`, but as of a historical timestamp. Optionally scope to one or more region IDs, a `(west, south, east, north)` bbox, or `device`. |
 
 ## Entries and summaries
 
@@ -81,3 +81,17 @@ rows = list(client.monitors.summaries(
     "count": 288,
 }
 ```
+
+## Filtering by device
+
+`list()`, `closest()`, `current()`, and `current_at()` all accept a `device` filter, matching one of the platform's monitor types:
+
+```python
+cimis_stations = list(client.monitors.current('temperature', device='CIMIS'))
+```
+
+Confirmed device values: `PurpleAir`, `AirNow`, `AQview`, `BAM1022`, `AQLite`, `AirGradient`, `CIMIS`. This list grows as new integrations land on the platform.
+
+## Meteorological entry types
+
+CIMIS weather stations report several meteorological entry types beyond the usual pollutant fields, usable with `entries()`, `current()`, and `summaries()` like any other `entry_type`: `temperature`, `humidity`, `pressure`, `dewpoint`, `soiltemperature`, `windspeed`, `winddirection`, `precipitation`, `solarradiation`, `netradiation`, `vaporpressure`, `eto`, `etr`.
