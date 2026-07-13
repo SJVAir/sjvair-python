@@ -40,8 +40,7 @@ class SJVAirClient:
     All resource objects (``monitors``, ``regions``, ``calenviroscreen4``,
     ``calenviroscreen5``, ``ceidars``, ``hms``, ``pesticides``,
     ``calheatscore``) are attached as attributes and share this client's
-    session,
-    retry logic, and cooldown gate.
+    session, retry logic, and cooldown gate.
 
     Args:
         base_url: API base URL. Defaults to ``SJVAIR_BASE_URL`` env var or the production URL.

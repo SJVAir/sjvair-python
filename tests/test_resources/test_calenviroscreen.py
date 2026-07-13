@@ -30,6 +30,7 @@ def test_ces4_list_omits_year_query_param_when_not_given() -> None:
 def test_ces4_get() -> None:
     rsps.add(rsps.GET, BASE + 'calenviroscreen/4.0/06019000100/', json={'data': {'score': 85.2}})
     assert SJVAirClient().calenviroscreen4.get('06019000100', year=2021)['score'] == 85.2
+    assert 'year=2021' in rsps.calls[0].request.url
 
 
 @rsps.activate
