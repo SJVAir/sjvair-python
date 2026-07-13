@@ -113,9 +113,7 @@ class MonitorsResource(BaseResource):
         # callers fanning out across monitors can attribute results.
         return ({'monitor_id': monitor_id, **row} for row in rows)
 
-    def closest(
-        self, entry_type: str, lat: float, lon: float, **params: Any
-    ) -> list[dict[str, Any]]:  # ty: ignore[invalid-type-form]
+    def closest(self, entry_type: str, lat: float, lon: float, **params: Any) -> list[dict[str, Any]]:  # ty: ignore[invalid-type-form]
         """Return up to 3 nearest active monitors with distance and latest entry.
 
         Pass ``device`` to filter by device type (e.g. ``device='CIMIS'``).

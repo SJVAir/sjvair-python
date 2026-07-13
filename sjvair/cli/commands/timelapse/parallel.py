@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from concurrent.futures import Executor, ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -90,7 +90,7 @@ def render_frames_parallel(
     api_key: str | None,
     timeout: int | None,
     quiet: bool,
-    executor_class: type[Executor] | None = None,
+    executor_class: type[ProcessPoolExecutor] | None = None,
 ) -> None:
     executor_class = executor_class or ProcessPoolExecutor
     total = len(timestamps)

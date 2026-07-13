@@ -28,8 +28,7 @@ from ...utils import parse_bbox, parse_timestamp, resolve_region
 @click.option(
     '--timestamp',
     default=None,
-    help='ISO 8601 timestamp for a historical snapshot. Omit for live data. UTC unless it '
-    'has an explicit offset or --tz is set.',
+    help='ISO 8601 timestamp for a historical snapshot. Omit for live data. UTC unless it has an explicit offset or --tz is set.',
 )
 @click.option(
     '--location',

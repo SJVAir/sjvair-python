@@ -117,8 +117,7 @@ def resolve_region(
     if len(results) == 1:
         return results[0]['id']
     raise click.ClickException(
-        f'Ambiguous region {query!r} — {len(results)} matches. Re-run with --region-id:\n'
-        + format_region_table(results)
+        f'Ambiguous region {query!r} — {len(results)} matches. Re-run with --region-id:\n' + format_region_table(results)
     )
 
 

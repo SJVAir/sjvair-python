@@ -13,7 +13,6 @@ from ...mapping import filter_by_location, resolve_area
 from ...utils import parse_bbox, parse_duration, parse_timestamp, resolve_region
 from .parallel import render_frames_parallel
 
-
 # GIF has no real inter-frame compression, so file size scales roughly linearly
 # with width * height * frame count. This is the point past which that product
 # tends to produce multi-hundred-MB files worth warning the user about.
@@ -44,11 +43,15 @@ def _frame_timestamps(start: datetime, end: datetime, interval: timedelta) -> It
     help='Query filter: strict region polygon, or everything in the viewport.',
 )
 @click.option(
-    '--start', 'start_str', required=True,
+    '--start',
+    'start_str',
+    required=True,
     help='ISO 8601 start timestamp. UTC unless it has an explicit offset or --tz is set.',
 )
 @click.option(
-    '--end', 'end_str', required=True,
+    '--end',
+    'end_str',
+    required=True,
     help='ISO 8601 end timestamp. UTC unless it has an explicit offset or --tz is set.',
 )
 @click.option('--interval', 'interval_str', required=True, help='Duration between frames, e.g. 5m, 1h.')
@@ -67,12 +70,17 @@ def _frame_timestamps(start: datetime, end: datetime, interval: timedelta) -> It
 @click.option('--height', type=int, default=1200)
 @click.option('--marker-size', type=int, default=220, help='Monitor marker size, in points^2 (matplotlib scatter `s`).')
 @click.option(
-    '--workers', type=int, default=1,
+    '--workers',
+    type=int,
+    default=1,
     help='Parallel frame-rendering processes (default 1 = sequential). Uses separate '
     'processes, not threads, since matplotlib rendering is not thread-safe.',
 )
 @click.option(
-    '--output', 'output_path', type=click.Path(path_type=Path), required=True,
+    '--output',
+    'output_path',
+    type=click.Path(path_type=Path),
+    required=True,
     help='Output path. Format is inferred from the extension: .gif or .mp4 (default for any other extension).',
 )
 @pass_ctx
