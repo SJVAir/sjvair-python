@@ -170,10 +170,18 @@ sjvair monitors current --type pm25
 sjvair monitors current --type o3 --output current-o3.csv
 ```
 
+```bash
+sjvair monitors current --type temperature --device CIMIS
+```
+
 ## `monitors closest`
 
 Up to 3 nearest active monitors to a coordinate, with distance and latest entry.
 
 ```bash
 sjvair monitors closest --type pm25 --lat 36.7468 --lon -119.7726
+```
+
+```bash
+sjvair monitors closest --type pm25 --lat 36.7468 --lon -119.7726 --device AQLite
 ```
