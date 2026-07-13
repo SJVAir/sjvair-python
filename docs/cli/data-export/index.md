@@ -12,6 +12,7 @@ Commands for listing, filtering, and bulk-exporting the datasets SJVAir aggregat
 | [Fire & Smoke](hms.md) | `sjvair hms` |
 | [Pesticides](pesticides.md) | `sjvair pesticides` |
 | [Forecasts](forecasts.md) | `sjvair forecasts` |
+| [TEMPO](tempo.md) | `sjvair tempo` |
 
 ```{toctree}
 :hidden:
@@ -24,4 +25,5 @@ ceidars
 hms
 pesticides
 forecasts
+tempo
 ```

@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   SJV county zone (`list(**params)`, `get(forecast_id)`).
 - **CLI**: `sjvair forecasts` — SJVAPCD forecast export, with `--date`,
   `--issued-date`, and the standard region flags.
+- **Client**: `client.tempo` — NASA TEMPO satellite air-quality data
+  (`products()`, `granules(product, **params)`, `latest(product)`,
+  `point(product, latitude, longitude, start=None, end=None)`,
+  `region(product, region_id, start=None, end=None)`).
+- **CLI**: `sjvair tempo --type {products,granules,latest,point,region}`.
 
 ### Changed
 

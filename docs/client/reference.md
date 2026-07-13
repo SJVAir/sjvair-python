@@ -38,6 +38,9 @@ Auto-generated from docstrings.
 
 .. autoclass:: sjvair.resources.forecasts.ForecastsResource
    :members:
+
+.. autoclass:: sjvair.resources.tempo.TempoResource
+   :members:
 ```
 
 ## Maps
