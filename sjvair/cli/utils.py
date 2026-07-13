@@ -4,7 +4,7 @@ import json
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Iterable
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import click
@@ -122,7 +122,7 @@ def resolve_region(
 
 
 def write_output(
-    data: Iterator[dict[str, Any]],
+    data: Iterable[dict[str, Any]],
     fmt: str,
     output: Path | None,
     force: bool = False,

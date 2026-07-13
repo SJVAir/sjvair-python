@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, Iterator
+from typing import Any, Iterable
 
 VALID_FORMATS = ('objects', 'tabular', 'dataframe', 'geodataframe')
 
 
-def format_output(data: Iterator[dict[str, Any]], fmt: str) -> Any:
-    """Convert an iterator of record dicts into the requested output format.
+def format_output(data: Iterable[dict[str, Any]], fmt: str) -> Any:
+    """Convert an iterable of record dicts into the requested output format.
 
     Args:
-        data: Iterator of record dicts as returned by any resource method.
+        data: Iterable of record dicts as returned by any resource method.
         fmt: One of:
 
             - ``'objects'`` — returns the iterator as-is (no conversion)
