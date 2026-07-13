@@ -18,7 +18,10 @@ Auto-generated from docstrings.
 .. autoclass:: sjvair.resources.regions.RegionsResource
    :members:
 
-.. autoclass:: sjvair.resources.calenviroscreen.CalEnviroScreenResource
+.. autoclass:: sjvair.resources.calenviroscreen.CalEnviroScreen4Resource
+   :members:
+
+.. autoclass:: sjvair.resources.calenviroscreen.CalEnviroScreen5Resource
    :members:
 
 .. autoclass:: sjvair.resources.ceidars.CEIDARSResource
@@ -28,6 +31,9 @@ Auto-generated from docstrings.
    :members:
 
 .. autoclass:: sjvair.resources.pesticides.PesticidesResource
+   :members:
+
+.. autoclass:: sjvair.resources.calheatscore.CalHeatScoreResource
    :members:
 ```
 
