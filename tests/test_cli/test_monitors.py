@@ -75,6 +75,32 @@ def test_monitors_summaries_comma_separated_and_tagged():
     assert '"monitor_id": "b"' in result.output
 
 
+@rsps.activate
+def test_monitors_summaries_with_workers_flag_fetches_all_monitors():
+    for mid in ('a', 'b', 'c'):
+        rsps.add(
+            rsps.GET,
+            BASE + f'monitors/{mid}/summaries/pm25/yearly/',
+            json={'data': [{'mean': 5.0}], 'has_next_page': False},
+        )
+    result = CliRunner().invoke(
+        cli,
+        [
+            'monitors', 'summaries',
+            '--monitor-id', 'a,b,c',
+            '--type', 'pm25',
+            '--resolution', 'yearly',
+            '--start-date', '2025-01-01',
+            '--end-date', '2025-12-31',
+            '--workers', '3',
+            '--format', 'json',
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    for mid in ('a', 'b', 'c'):
+        assert f'"monitor_id": "{mid}"' in result.output
+
+
 def test_monitors_entries_rejects_over_limit_period(tmp_path):
     out = tmp_path / 'out.json'
     result = CliRunner().invoke(

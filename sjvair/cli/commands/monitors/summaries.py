@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import itertools
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -26,6 +28,7 @@ from ...utils import format_from_path, resolve_region, split_ids, write_output
 @click.option('--urban', default=None)
 @click.option('--region-id', default=None)
 @click.option('--is-sjvair', is_flag=True, default=False)
+@click.option('--workers', default=4, type=int, help='Concurrent requests across monitors.')
 @click.option('--output', 'output_path', type=click.Path(path_type=Path), default=None)
 @click.option('--format', 'fmt', type=click.Choice(['csv', 'json', 'yaml']), default=None)
 @pass_ctx
@@ -43,6 +46,7 @@ def monitors_summaries(
     urban: str | None,
     region_id: str | None,
     is_sjvair: bool,
+    workers: int,
     output_path: Path | None,
     fmt: str | None,
 ) -> None:
@@ -57,8 +61,11 @@ def monitors_summaries(
             params['is_sjvair'] = True
         ids = [m['id'] for m in ctx.client.monitors.list(**params)]
 
-    data = itertools.chain.from_iterable(
-        ctx.client.monitors.summaries(mid, entry_type, resolution, start_date, end_date) for mid in ids
-    )
+    def fetch(monitor_id: str) -> list[dict[str, Any]]:
+        return list(ctx.client.monitors.summaries(monitor_id, entry_type, resolution, start_date, end_date))
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        data = list(itertools.chain.from_iterable(pool.map(fetch, ids)))
+
     fmt = format_from_path(output_path, fmt)
     write_output(data, fmt, output_path, force=ctx.force)
