@@ -113,21 +113,13 @@ class MonitorsResource(BaseResource):
         # callers fanning out across monitors can attribute results.
         return ({'monitor_id': monitor_id, **row} for row in rows)
 
-    def closest(
-        self, entry_type: str, lat: float, lon: float, **params: Any
-    ) -> list[dict[str, Any]]:  # ty: ignore[invalid-type-form]
-        """Return up to 3 nearest active monitors with distance and latest entry.
+    def closest(self, entry_type: str, lat: float, lon: float) -> list[dict[str, Any]]:  # ty: ignore[invalid-type-form]
+        """Return up to 3 nearest active monitors with distance and latest entry."""
+        return self._client.get(f'monitors/{entry_type}/closest/', {'lat': lat, 'lon': lon})['data']
 
-        Pass ``device`` to filter by device type (e.g. ``device='CIMIS'``).
-        """
-        return self._client.get(f'monitors/{entry_type}/closest/', {'lat': lat, 'lon': lon, **params})['data']
-
-    def current(self, entry_type: str, **params: Any) -> Iterator[dict[str, Any]]:
-        """Iterate all active monitors with their most recent entry for the given type.
-
-        Pass ``device`` to filter by device type (e.g. ``device='CIMIS'``).
-        """
-        return self._paginate(f'monitors/{entry_type}/current/', params or None)
+    def current(self, entry_type: str) -> Iterator[dict[str, Any]]:
+        """Iterate all active monitors with their most recent entry for the given type."""
+        return self._paginate(f'monitors/{entry_type}/current/')
 
     def current_at(
         self,
@@ -135,7 +127,6 @@ class MonitorsResource(BaseResource):
         timestamp: str,
         region: list[str] | None = None,  # ty: ignore[invalid-type-form]
         bbox: tuple[float, float, float, float] | None = None,
-        **params: Any,
     ) -> Iterator[dict[str, Any]]:
         """As :meth:`current`, but as-of a historical ``timestamp`` (ISO 8601).
 
@@ -145,10 +136,8 @@ class MonitorsResource(BaseResource):
             region: One or more region IDs to filter to monitors covered by their
                 boundaries.
             bbox: ``(west, south, east, north)`` to filter to monitors within the box.
-
-        Pass ``device`` to filter by device type (e.g. ``device='CIMIS'``).
         """
-        params = {'timestamp': timestamp, **params}
+        params: dict[str, Any] = {'timestamp': timestamp}
         if region:
             params['region'] = list(region)
         if bbox:
