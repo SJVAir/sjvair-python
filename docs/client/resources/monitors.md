@@ -90,7 +90,7 @@ rows = list(client.monitors.summaries(
 cimis_stations = list(client.monitors.current('temperature', device='CIMIS'))
 ```
 
-Confirmed device values: `PurpleAir`, `AirNow`, `AQview`, `BAM1022`, `AQLite`, `AirGradient`, `CIMIS`. This list grows as new integrations land on the platform.
+Confirmed device values: `PurpleAir`, `AirNow`, `AQview`, `BAM1022`, `AQLite`, `AirGradient`, `CIMIS`, `VOZBox`. This list grows as new integrations land on the platform.
 
 ## Meteorological entry types
 

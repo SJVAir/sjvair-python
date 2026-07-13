@@ -33,14 +33,14 @@ Scriptable access to monitors, regions, and every integrated dataset.
 :::
 ::::
 
-## Air Monitoring
+## Air Quality
 
 Beyond SJVAir's own fleet, the CLI and client can filter monitors by these integrated networks with `--device`:
 
 ::::{grid} 1 2 3 3
 :gutter: 3
 
-:::{grid-item-card} {octicon}`broadcast;1.2em;sd-mr-1` PurpleAir
+:::{grid-item-card} {far}`cloud;sd-mr-1 fa-lg` PurpleAir
 :link: client/resources/monitors
 :link-type: doc
 :link-alt: Filtering by device
@@ -50,7 +50,7 @@ Community-operated network of low-cost consumer PM2.5 sensors.
 `--device PurpleAir`
 :::
 
-:::{grid-item-card} {octicon}`verified;1.2em;sd-mr-1` AirNow
+:::{grid-item-card} {far}`shield-check;sd-mr-1 fa-lg` AirNow
 :link: client/resources/monitors
 :link-type: doc
 :link-alt: Filtering by device
@@ -60,7 +60,7 @@ EPA's national real-time feed of regulatory-grade air monitors.
 `--device AirNow`
 :::
 
-:::{grid-item-card} {octicon}`eye;1.2em;sd-mr-1` AQview
+:::{grid-item-card} {far}`eye;sd-mr-1 fa-lg` AQview
 :link: client/resources/monitors
 :link-type: doc
 :link-alt: Filtering by device
@@ -70,7 +70,7 @@ CARB's public viewer aggregating California's community monitoring networks.
 `--device AQview`
 :::
 
-:::{grid-item-card} {octicon}`cpu;1.2em;sd-mr-1` BAM1022
+:::{grid-item-card} {far}`weight-hanging;sd-mr-1 fa-lg` BAM1022
 :link: client/resources/monitors
 :link-type: doc
 :link-alt: Filtering by device
@@ -80,17 +80,17 @@ Met One BAM-1022 beta attenuation monitors — regulatory-grade PM.
 `--device BAM1022`
 :::
 
-:::{grid-item-card} {octicon}`zap;1.2em;sd-mr-1` AQLite
+:::{grid-item-card} {far}`smog;sd-mr-1 fa-lg` AQLite
 :link: client/resources/monitors
 :link-type: doc
 :link-alt: Filtering by device
 
-2B Technologies AQLite regulatory-grade multi-pollutant/O3 monitors.
+2B Technologies AQLite regulatory-grade ozone (O3) monitors.
 
 `--device AQLite`
 :::
 
-:::{grid-item-card} {octicon}`package;1.2em;sd-mr-1` AirGradient
+:::{grid-item-card} {far}`box-open;sd-mr-1 fa-lg` AirGradient
 :link: client/resources/monitors
 :link-type: doc
 :link-alt: Filtering by device
@@ -100,24 +100,14 @@ Open-source air quality monitor hardware.
 `--device AirGradient`
 :::
 
-:::{grid-item-card} {octicon}`cloud;1.2em;sd-mr-1` CIMIS
-:link: client/resources/monitors
-:link-type: doc
-:link-alt: Filtering by device
-
-California's irrigation-management weather station network — also the source of SJVAir's meteorological entry types.
-
-`--device CIMIS`
-:::
-
-:::{grid-item-card} {octicon}`people;1.2em;sd-mr-1` VOZBox
+:::{grid-item-card} {far}`people-group;sd-mr-1 fa-lg` VOZBox
 :link: client/resources/monitors
 :link-type: doc
 :link-alt: Filtering by device
 
 Community-deployed air monitors.
 
-*`--device` filtering not yet available server-side.*
+`--device VOZBox`
 :::
 
 ::::
@@ -129,7 +119,7 @@ Beyond SJVAir's own network of air quality monitors, the CLI and client can pull
 ::::{grid} 1 2 3 3
 :gutter: 3
 
-:::{grid-item-card} {octicon}`meter;1.2em;sd-mr-1` CalEnviroScreen
+:::{grid-item-card} {far}`gauge-high;sd-mr-1 fa-lg` CalEnviroScreen
 :link: cli/data-export/calenviroscreen
 :link-type: doc
 
@@ -138,7 +128,7 @@ OEHHA / CalEPA cumulative pollution-burden scores by census tract.
 `sjvair calenviroscreen5`
 :::
 
-:::{grid-item-card} {octicon}`sun;1.2em;sd-mr-1` CalHeatScore
+:::{grid-item-card} {far}`temperature-high;sd-mr-1 fa-lg` CalHeatScore
 :link: cli/data-export/calheatscore
 :link-type: doc
 
@@ -147,7 +137,7 @@ CalEPA daily ZIP-code-level heat-risk scores for the San Joaquin Valley.
 `sjvair calheatscore`
 :::
 
-:::{grid-item-card} {octicon}`stack;1.2em;sd-mr-1` Facility Emissions
+:::{grid-item-card} {far}`industry;sd-mr-1 fa-lg` Facility Emissions
 :link: cli/data-export/ceidars
 :link-type: doc
 
@@ -156,7 +146,7 @@ CARB permitted stationary emissions sources (facilities).
 `sjvair ceidars`
 :::
 
-:::{grid-item-card} {octicon}`flame;1.2em;sd-mr-1` Fire & Smoke
+:::{grid-item-card} {far}`fire;sd-mr-1 fa-lg` Fire & Smoke
 :link: cli/data-export/hms
 :link-type: doc
 
@@ -165,7 +155,7 @@ NOAA satellite-derived smoke plume and fire detections.
 `sjvair hms`
 :::
 
-:::{grid-item-card} {octicon}`beaker;1.2em;sd-mr-1` Pesticides
+:::{grid-item-card} {far}`spray-can-sparkles;sd-mr-1 fa-lg` Pesticides
 :link: cli/data-export/pesticides
 :link-type: doc
 
@@ -174,13 +164,23 @@ CDPR mandatory agricultural pesticide use reports.
 `sjvair pesticides`
 :::
 
-:::{grid-item-card} {octicon}`graph;1.2em;sd-mr-1` Forecasts
+:::{grid-item-card} {far}`chart-line;sd-mr-1 fa-lg` Forecasts
 :link: cli/data-export/forecasts
 :link-type: doc
 
 SJVAPCD daily air quality forecasts by San Joaquin Valley county zone.
 
 `sjvair forecasts`
+:::
+
+:::{grid-item-card} {far}`cloud-sun;sd-mr-1 fa-lg` CIMIS
+:link: client/resources/monitors
+:link-type: doc
+:link-alt: Filtering by device
+
+California's irrigation-management weather station network — also the source of SJVAir's meteorological entry types.
+
+`--device CIMIS`
 :::
 
 ::::
