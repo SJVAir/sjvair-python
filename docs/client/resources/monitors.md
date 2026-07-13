@@ -94,4 +94,4 @@ Confirmed device values: `PurpleAir`, `AirNow`, `AQview`, `BAM1022`, `AQLite`, `
 
 ## Meteorological entry types
 
-CIMIS weather stations report ten entry types beyond the usual pollutant fields, usable with `entries()`, `current()`, and `summaries()` like any other `entry_type`: `temperature`, `humidity`, `pressure`, `dewpoint`, `soiltemperature`, `windspeed`, `winddirection`, `precipitation`, `solarradiation`, `netradiation`, `vaporpressure`, `eto`, `etr`.
+CIMIS weather stations report several meteorological entry types beyond the usual pollutant fields, usable with `entries()`, `current()`, and `summaries()` like any other `entry_type`: `temperature`, `humidity`, `pressure`, `dewpoint`, `soiltemperature`, `windspeed`, `winddirection`, `precipitation`, `solarradiation`, `netradiation`, `vaporpressure`, `eto`, `etr`.
