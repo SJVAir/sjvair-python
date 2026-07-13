@@ -83,6 +83,7 @@ from .commands import (  # noqa: E402
     forecasts,
     hms,
     pesticides,
+    tempo,
 )
 from .commands.map import map_group  # noqa: E402
 from .commands.monitors import monitors  # noqa: E402
@@ -100,3 +101,4 @@ cli.add_command(hms.hms)
 cli.add_command(pesticides.pesticides)
 cli.add_command(calheatscore.calheatscore)
 cli.add_command(forecasts.forecasts)
+cli.add_command(tempo.tempo)
